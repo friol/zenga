@@ -1,0 +1,14 @@
+/* this is the .css file */
+
+html
+{
+    font-size: 18px;
+    font-family: 'Roboto', sans-serif;
+    /*background-color: black;*/
+}
+
+canvas 
+{ 
+    image-rendering: pixelated; 
+    user-select: none;
+}
