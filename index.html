@@ -9,9 +9,10 @@
         <!--<link rel="icon" type="image/png" href="img/favicon.ico"/>-->
         <title>Zenga - version 0.1a</title>
 
-        <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="css/main.css"/>
         
+        <script src="js/smsMmu.js"></script>
+        <script src="js/z80cpu.js"></script>
         <script src="js/cartridge.js"></script>
         <script src="js/main.js"></script>
     </head>
@@ -20,9 +21,10 @@
         <div id="titleDiv">Zenga emulator v0.1a - running at <span id="fpsSpan"></span></div>
         <div id="debuggerDiv">
         </div>
-        <canvas width=800 height=400 id="mainCanvass" style="display:none"></canvas>
-        <canvas width=560 height=384 id="a2display"></canvas>
+        <canvas width=800 height=400 id="debugCanvas"></canvas>
+        <canvas width=256 height=192 id="smsdisplay"></canvas>
         <br/>
+        <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
 
     </body>
 </html>

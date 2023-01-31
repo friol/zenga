@@ -1,14 +1,16 @@
 /* this is the .css file */
 
-html
-{
-    font-size: 18px;
-    font-family: 'Roboto', sans-serif;
-    /*background-color: black;*/
-}
-
 canvas 
 { 
     image-rendering: pixelated; 
     user-select: none;
+}
+
+/* debugger font */
+
+@font-face 
+{
+    font-family: 'terminalfont';
+    /*src: url('../fonts/VT323-Regular.ttf');*/
+    src: url('../fonts/TerminusTTF-4.49.2.ttf');
 }
