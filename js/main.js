@@ -131,17 +131,16 @@ window.onload = (event) =>
 {
     document.onkeydown = function(e)
 	{
-        //console.log(e.key);
-
-    }
-
-    document.onkeyup = function(e)
-	{
         if (e.key=="s")
         {
             glbCPU.executeOne();
             e.preventDefault();
         }
+
+    }
+
+    document.onkeyup = function(e)
+	{
     }
 
     //document.addEventListener('fullscreenchange', fullscreenchanged);

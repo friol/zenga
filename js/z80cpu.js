@@ -56,16 +56,17 @@ class z80cpu
         console.log("CPU::Inited");
     }
 
-    incPc() 
+    incPc(n) 
     { 
-        this.registers.pc++; 
+        this.registers.pc+=n; 
         this.registers.pc &= 0xffff; 
     }
 
-    inc2Pc()
+    jumpRel(n)
     {
-        this.registers.pc+=2; 
-        this.registers.pc &= 0xffff; 
+        if ((n&0x80)==0x80) this.registers.pc-=(n&0x7f);
+        else this.registers.pc+=n;
+        this.registers.pc&=0xffff;
     }
 
     // tables structure:
@@ -75,17 +76,46 @@ class z80cpu
     {
         let self = this;
         this.unprefixedOpcodes[0x0e]=[undefined, "LD C,%d", 7, 1, false];
-        this.unprefixedOpcodes[0x18]=[undefined, "JR %d", 12, 1, false];
-        this.unprefixedOpcodes[0x31]=[undefined, "LD SP,%d", 10, 2, false];
+        this.unprefixedOpcodes[0x18]=[function() { var jq=self.theMMU.readAddr(self.registers.pc+1); self.incPc(2); self.jumpRel(jq); }, "JR %d", 12, 1, false];
+        this.unprefixedOpcodes[0x21]=[function()
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            var m2=self.theMMU.readAddr(self.registers.pc+2);
+            self.registers.h=m2;
+            self.registers.l=m1;
+            self.incPc(3); 
+        }, "LD HL,%d", 10, 2, false];
+        this.unprefixedOpcodes[0x22]=[function()
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            var m2=self.theMMU.readAddr(self.registers.pc+2);
+            var addr=(m2<<8)|m1;
+            self.theMMU.writeAddr(addr,self.registers.l);
+            self.theMMU.writeAddr(addr+1,self.registers.h);
+            self.incPc(3);
+        }, "LD (%d),HL", 16, 2, false];
+        this.unprefixedOpcodes[0x31]=[function() 
+        { 
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            var m2=self.theMMU.readAddr(self.registers.pc+2);
+            self.registers.sp=(m2<<8)|m1;
+            self.incPc(3); 
+        }, "LD SP,%d", 10, 2, false];
+        this.unprefixedOpcodes[0x7e]=[function()
+        {
+            var addr=self.registers.l|(self.registers.h<<8);
+            self.registers.a=self.theMMU.readAddr(addr);
+            self.incPc(1);
+        }, "LD A,(HL)", 7, 0, false];
         this.unprefixedOpcodes[0xc9]=[undefined, "RET", 10, 0, false];
-        this.unprefixedOpcodes[0xf3]=[function() { self.maskableInterruptsEnabled = false; self.incPc(); },"DI", 4, 0, false];
+        this.unprefixedOpcodes[0xf3]=[function() { self.maskableInterruptsEnabled = false; self.incPc(1); },"DI", 4, 0, false];
         this.unprefixedOpcodes[0xfb]=[undefined, "EI", 4, 0, false];
     }
 
     initEdTable()
     {
         let self = this;
-        this.prefixedOpcodes[0x56]=[function() { self.interruptMode = 1; self.inc2Pc(); }, "IM 1", 8, 0, false];
+        this.prefixedOpcodes[0x56]=[function() { self.interruptMode = 1; self.incPc(2); }, "IM 1", 8, 0, false];
         this.prefixedOpcodes[0x61]=[undefined, "OUT (C),H", 12, 0, false];
         this.prefixedOpcodes[0x69]=[undefined, "OUT (C),L", 12, 0, false];
     }
