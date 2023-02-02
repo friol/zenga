@@ -33,7 +33,7 @@ function drawDebugPanel(instructions)
     ctx.beginPath();
     ctx.lineWidth = "1";
     ctx.strokeStyle = "green";
-    ctx.rect(0, 0, 290, 20);
+    ctx.rect(0, 0, 310, 20);
     ctx.stroke();    
 
     // instructions

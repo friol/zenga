@@ -40,4 +40,12 @@ class smsMmu
     {
 
     }
+
+    // I/O ports
+
+    writePort(p,v)
+    {
+        
+    }
+
 }
