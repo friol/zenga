@@ -4,6 +4,7 @@ canvas
 { 
     image-rendering: pixelated; 
     user-select: none;
+    border: black 1px solid;
 }
 
 /* debugger font */

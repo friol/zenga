@@ -78,7 +78,10 @@ class z80cpu
 
     jumpRel(n)
     {
-        if ((n&0x80)==0x80) this.registers.pc-=(n&0x7f);
+        if ((n&0x80)==0x80) 
+        {
+            this.registers.pc+=-0x80 + (n&0x7F);
+        }
         else this.registers.pc+=n;
         this.registers.pc&=0xffff;
     }
@@ -132,6 +135,101 @@ class z80cpu
         return newValue;
     }
 
+    sub_8bit(v1, v2) 
+    {
+		let rawNewValue = v1 - v2;
+		let newValue = rawNewValue & 0xff;
+
+		// Reset the flags.
+		this.registers.f = 0;
+
+		// C: Set if the result is negative
+		if (rawNewValue < 0) 
+        {
+			this.registers.f |= z80flags.FLAG_C;
+		}
+
+		// N: Set.
+		this.registers.f |= z80flags.FLAG_N;
+
+		// P/V: Set if the two's compliment subtraction overflowed.
+		if ((v1 & 0x80) != (v2 & 0x80) && (v1 & 0x80) != (newValue & 0x80)) 
+        {
+			this.registers.f |= z80flags.FLAG_PV;
+		}
+
+		// F3: Set if bit 3 of the result is set.
+		if (newValue & 0x08) 
+        {
+			this.registers.f |= z80flags.FLAG_F3;
+		}
+
+		// H: Set if the first 4 bits of the subtraction resulted in a borrow.
+		if ((v1 & 0x0f) - (v2 & 0x0f) < 0) 
+        {
+			this.registers.f |= z80flags.FLAG_H;
+		}
+
+		// F5: Set if bit 5 of the test byte is set.
+		if (newValue & 0x20) 
+        {
+			this.registers.f |= z80flags.FLAG_F5;
+		}
+
+		// Z: Set if the value is zero.
+		if (newValue == 0) 
+        {
+			this.registers.f |= z80flags.FLAG_Z;
+		}
+
+		// S: If the twos-compliment value is negative, set the negative flag.
+		if (newValue & 0x80) 
+        {
+			this.registers.f |= z80flags.FLAG_S;
+		}
+
+		return newValue;
+	}    
+
+    xor_8bit(v1, v2) 
+    {
+		let newValue = v1 ^ v2;
+
+		// Reset the flags.
+		this.registers.f = 0;
+
+		// C: Reset.
+
+		// N: Reset.
+
+		// P/V: Set if new value has even number of set bits.
+        // TODO
+		/*if (self.parityLookUp[newValue]) 
+        {
+			r.f |= CPU_FLAG_PV;
+		}*/
+
+		// F3: Reset.
+
+		// H: Reset.
+
+		// F5: Reset.
+
+		// Z: Set if the value is zero.
+		if (newValue == 0) 
+        {
+			self.registers.f |= z80flags.FLAG_Z;
+		}
+
+		// S: Set if the twos-compliment value is negative.
+		if (newValue & 0x80) 
+        {
+			self.registers.f |= z80flags.FLAG_S;
+		}
+
+		return newValue;
+	}    
+
 	executeOutIncrementRepeat() 
     {
         // the most complex instruction in the world with a funny name
@@ -178,6 +276,7 @@ class z80cpu
             self.registers.c=m1; 
             self.incPc(3); 
         }, "LD BC,%d", 10, 2, false];
+        this.unprefixedOpcodes[0x05]=[function() { self.registers.b=self.dec_8bit(self.registers.b); self.incPc(1); }, "DEC B", 4, 0, false];
         this.unprefixedOpcodes[0x06]=[function() { var m1=self.theMMU.readAddr(self.registers.pc+1); self.registers.b=m1; self.incPc(2); }, "LD B,%d", 7, 1, false];
         this.unprefixedOpcodes[0x0d]=[function() { self.registers.c=self.dec_8bit(self.registers.c); self.incPc(1); }, "DEC C", 4, 0, false];
         this.unprefixedOpcodes[0x0e]=[function() { var m1=self.theMMU.readAddr(self.registers.pc+1); self.registers.c=m1; self.incPc(2); }, "LD C,%d", 7, 1, false];
@@ -209,6 +308,25 @@ class z80cpu
             self.theMMU.writeAddr(addr+1,self.registers.h);
             self.incPc(3);
         }, "LD (%d),HL", 16, 2, false];
+        this.unprefixedOpcodes[0x23]=[function()
+            {
+                var hl=self.registers.l|(self.registers.h<<8);
+                hl+=1; hl&=0xffff;
+                self.registers.l=hl&0xff;
+                self.registers.h=(hl>>8)&0xff;
+                self.incPc(1);
+            }, "INC HL", 6, 0, false];
+        this.unprefixedOpcodes[0x28]=[function() 
+        { 
+            // TODO 12/7 cycles (12 if jumped, 7 otherwise)
+            var jq=self.theMMU.readAddr(self.registers.pc+1); 
+            self.incPc(2); 
+            if (self.registers.f&z80flags.FLAG_Z)
+            {
+                self.jumpRel(jq); 
+            }
+        },
+        "JR Z,%d", 7, 1, false];
         this.unprefixedOpcodes[0x31]=[function() 
         { 
             var m1=self.theMMU.readAddr(self.registers.pc+1);
@@ -217,6 +335,8 @@ class z80cpu
             self.incPc(3); 
         }, "LD SP,%d", 10, 2, false];
         this.unprefixedOpcodes[0x3e]=[function() { var m1=self.theMMU.readAddr(self.registers.pc+1); self.registers.a=m1; self.incPc(2); }, "LD A,%d", 7, 1, false];
+        this.unprefixedOpcodes[0x78]=[function() { self.registers.a=self.registers.b; self.incPc(1); }, "LD A,B", 4, 0, false];
+        this.unprefixedOpcodes[0x79]=[function() { self.registers.a=self.registers.c; self.incPc(1); }, "LD A,C", 4, 0, false];
         this.unprefixedOpcodes[0x7e]=[function()
         {
             var addr=self.registers.l|(self.registers.h<<8);
@@ -231,8 +351,20 @@ class z80cpu
         }, "JP %d", 10, 2, false];
         this.unprefixedOpcodes[0xc9]=[undefined, "RET", 10, 0, false];
         this.unprefixedOpcodes[0xd3]=[function() { var port=self.theMMU.readAddr(self.registers.pc+1); self.theMMU.writePort(port,self.registers.a); self.incPc(2); }, "OUT (%d),A", 11, 1, false];
+        this.unprefixedOpcodes[0xee]=[function()
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            self.registers.a = self.xor_8bit(self.registers.a, m1);
+            self.incPc(2);
+        }, "XOR %d", 7, 1, false];
         this.unprefixedOpcodes[0xf3]=[function() { self.maskableInterruptsEnabled = false; self.incPc(1); },"DI", 4, 0, false];
         this.unprefixedOpcodes[0xfb]=[undefined, "EI", 4, 0, false];
+        this.unprefixedOpcodes[0xfe]=[function()
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            self.sub_8bit(self.registers.a,m1);
+            self.incPc(2);
+        }, "CP %d", 7, 1, false];
     }
 
     initEdTable()

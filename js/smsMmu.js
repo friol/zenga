@@ -2,7 +2,7 @@
 
 class smsMmu
 {
-    constructor(theCart)
+    constructor(theCart,theVDP)
     {
         this.ram8k=new Array(0x2000);
         for (var i=0;i<0x2000;i++)
@@ -11,6 +11,7 @@ class smsMmu
         }
 
         this.theCartridge=theCart;
+        this.theVDP=theVDP;
 
         console.log("MMU::Inited");
     }
@@ -45,7 +46,15 @@ class smsMmu
 
     writePort(p,v)
     {
-        
+        if (p==0xbf)
+        {
+            this.theVDP.writeByteToControlPort(v);
+        }
+        else if (p==0xbe)
+        {
+            this.theVDP.writeByteToDataPort(v);
+        }
+
     }
 
 }

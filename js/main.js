@@ -8,11 +8,15 @@
 var glbMMU;
 var glbCPU;
 var glbCartridge;
+var glbVDP;
 
 // fps counter
 var frameTime = 0;
 var lastLoop = new Date;
 var thisLoop=undefined;
+
+var glbBpLine=0;
+var glbBreakpoint=-1;
 
 //
 
@@ -39,10 +43,11 @@ function drawDebugPanel(instructions)
     // instructions
 
     ctx.font = "20px terminalfont";
-    ctx.fillStyle = "black";
 
     for (var i=0;i<instructions.length;i++)
     {
+        ctx.fillStyle = "black";
+
         var dbgString="";
         dbgString+=instructions[i].address.toString(16).padStart(4, '0');
         dbgString+=" ";
@@ -55,7 +60,18 @@ function drawDebugPanel(instructions)
             else dbgString+="   ";
         }
         dbgString+=instructions[i].decodedString;
-        ctx.fillText(dbgString,10,ycoord);
+        if (glbBpLine==i)
+        {
+            ctx.fillText(">",0,ycoord);
+        }
+
+        if (glbBreakpoint==instructions[i].address)
+        {
+            ctx.fillStyle = "red";
+            ctx.fillText("*",0,ycoord);
+        }
+
+        ctx.fillText(dbgString,20,ycoord);
         ycoord+=20;
     }
 
@@ -96,6 +112,11 @@ function emulate()
     var decodedInstrs=glbCPU.debugInstructions(16);
     drawDebugPanel(decodedInstrs);
 
+    const canvas=document.getElementById("debugCanvas");
+    const ctx = canvas.getContext("2d");
+    glbVDP.debugPalette(ctx,480,390);
+    glbVDP.debugTiles(ctx,500,0);
+
     setTimeout(emulate,10);
 }
 
@@ -119,7 +140,8 @@ function handleCartridgeUpload(fls)
 
         glbCartridge=new cartridge();
         glbCartridge.load(arrayBuffer);
-        glbMMU=new smsMmu(glbCartridge);
+        glbVDP=new smsVDP();
+        glbMMU=new smsMmu(glbCartridge,glbVDP);
         glbCPU=new z80cpu(glbMMU);
 
         emulate();
@@ -136,13 +158,45 @@ window.onload = (event) =>
             glbCPU.executeOne();
             e.preventDefault();
         }
-
+        else if (e.key=="r")
+        {
+            while (glbCPU.registers.pc!=glbBreakpoint)
+            {
+                glbCPU.executeOne();
+            }
+            e.preventDefault();
+        }
     }
 
     document.onkeyup = function(e)
 	{
     }
 
-    //document.addEventListener('fullscreenchange', fullscreenchanged);
+    var canvas = document.getElementById('debugCanvas');
+    canvas.addEventListener("mousemove", function (e) 
+    {
+        var rect = canvas.getBoundingClientRect();
+        var mousex=(e.clientX-rect.left);
+        var mousey=(e.clientY-rect.top);
 
+        var row=Math.floor(mousey/20);
+        glbBpLine=row;
+
+    }, false);
+
+    canvas.addEventListener("mousedown", function (e) 
+    {
+        var decodedInstrs=glbCPU.debugInstructions(16);
+
+        var rect = canvas.getBoundingClientRect();
+        var mousex=(e.clientX-rect.left);
+        var mousey=(e.clientY-rect.top);
+
+        var row=Math.floor(mousey/20);
+        glbBreakpoint=decodedInstrs[row].address;
+
+        //console.log("Click on "+mousex+" "+mousey);
+    });    
+
+    //document.addEventListener('fullscreenchange', fullscreenchanged);
 }
