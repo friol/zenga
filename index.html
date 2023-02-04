@@ -13,19 +13,24 @@
         
         <script src="js/smsMmu.js"></script>
         <script src="js/smsVdp.js"></script>
+        <script src="js/testMMU.js"></script>
         <script src="js/z80cpu.js"></script>
+        <script src="js/cpuTestRunner.js"></script>
         <script src="js/cartridge.js"></script>
         <script src="js/main.js"></script>
     </head>
 
     <body>
-        <div id="titleDiv">Zenga emulator v0.1a - running at <span id="fpsSpan"></span></div>
+        <div id="titleDiv"><b>Zenga</b> emulator v0.1a - running at <span id="fpsSpan"></span></div>
         <div id="debuggerDiv">
         </div>
         <canvas width=800 height=400 id="debugCanvas"></canvas>
         <canvas width=256 height=192 id="smsdisplay"></canvas>
         <br/>
         <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
+        <br/><br/>
+        <button onclick="runCPUTests();">Test CPU!</button>
 
     </body>
 </html>
+

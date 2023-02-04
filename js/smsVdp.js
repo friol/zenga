@@ -17,6 +17,7 @@ class smsVDP
             this.colorRam.push(0);            
         }
 
+        /* video RAM */
         this.vRam=new Array();
         for (var b=0;b<0x4000;b++)
         {
@@ -28,15 +29,21 @@ class smsVDP
         this.dataPortReadWriteAddress=0;
         this.dataPortWriteMode=vdpDataPortWriteMode.toVRAM;
         this.readBufferByte=0;
+
+        this.nameTableBaseAddress=0;
+        this.vcounter=0;
+        this.hcounter=0;
     }
 
     writeByteToRegister(registerIndex, dataByte)
     {
+        console.log("VDP::write byte 0x"+dataByte.toString(16).padStart(2,'0')+" to register "+registerIndex);
+
         if (registerIndex==2)        
         {
             /*  Register $02 - Name Table Base Address */
             console.log("VDP::register 2 write (name table base address)");
-
+            this.nameTableBaseAddress = dataByte;
         }
     }
 
@@ -129,6 +136,16 @@ class smsVDP
 		this.readBufferByte=b;
     }
 
+    readDataPort(p)
+    {
+        if (p==0x7e)
+        {
+            return this.vcounter;
+        }
+
+        return 0;
+    }
+
     drawTile(ctx,addr,x,y)
     {
         for (var yt=0;yt<8;yt++)
@@ -184,6 +201,57 @@ class smsVDP
             const quadSize=10;
             ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
             ctx.fillRect(x+(color*quadSize),y,quadSize,quadSize);
+        }
+
+    }
+
+    update()
+    {
+        // TODO check this
+        // update counters like V and H
+        this.hcounter+=1;
+        if (this.hcounter>256)
+        {
+            this.hcounter=0;
+            this.vcounter+=1;
+
+            if (this.vcounter>192)
+            {
+                this.vcounter=0;
+            }
+        }
+    }
+
+    /*
+        Each word in the name table has the following layout:
+
+        MSB          LSB
+        ---pcvhnnnnnnnnn
+
+        - = Unused. Some games use these bits as flags for collision and damage
+            zones. (such as Wonderboy in Monster Land, Zillion 2)
+        p = Priority flag. When set, sprites will be displayed underneath the
+            background pattern in question.
+        c = Palette select.
+        v = Vertical flip flag.
+        h = Horizontal flip flag.
+        n = Pattern index, any one of 512 patterns in VRAM can be selected.    
+    */
+
+    drawScreen(ctx)
+    {
+        var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+
+        for (var y=0;y<24;y++)
+        {
+            for (var x=0;x<32;x++)
+            {
+                var word=this.vRam[nameTableBaseAddress];
+                word|=this.vRam[nameTableBaseAddress+1]<<8;
+
+                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8);   
+                nameTableBaseAddress+=2;             
+            }
         }
 
     }

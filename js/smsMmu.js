@@ -39,8 +39,31 @@ class smsMmu
 
     writeAddr(addr,value)
     {
-
+        if ((addr>=0xc000)&&(addr<=0xdfff))
+        {
+            this.ram8k[addr-0xc000]=value;
+        }
+        else if ((addr>=0xe000)&&(addr<=0xffff))
+        {
+            this.ram8k[addr-0xe000]=value;
+        }
     }
+
+    readAddr16bit(address)
+    {
+		let byte1 = this.readAddr(address);
+		let byte2 = this.readAddr(address + 1);
+		return byte1 | byte2 << 8;        
+    }
+
+	writeAddr16bit(address, word) 
+    {
+		var byte1 = word & 0xFF;
+		var byte2 = word >> 8;
+
+		this.writeAddr(address, byte1);
+		this.writeAddr(address + 1, byte2);
+	}    
 
     // I/O ports
 
@@ -55,6 +78,16 @@ class smsMmu
             this.theVDP.writeByteToDataPort(v);
         }
 
+    }
+
+    readPort(p)
+    {
+        if (p==0x7e)
+        {
+            return this.theVDP.readDataPort(p);
+        }
+
+        return 0;
     }
 
 }

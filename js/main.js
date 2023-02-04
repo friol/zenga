@@ -17,6 +17,7 @@ var thisLoop=undefined;
 
 var glbBpLine=0;
 var glbBreakpoint=-1;
+const numDebuggerLines=20;
 
 //
 
@@ -109,13 +110,17 @@ function emulate()
     var fpeez=(1000/frameTime).toFixed(1);
     fpsOut.innerHTML = "going at " + fpeez + " fps";
 
-    var decodedInstrs=glbCPU.debugInstructions(16);
+    var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
     drawDebugPanel(decodedInstrs);
 
     const canvas=document.getElementById("debugCanvas");
     const ctx = canvas.getContext("2d");
     glbVDP.debugPalette(ctx,480,390);
     glbVDP.debugTiles(ctx,500,0);
+
+    const videocanvas=document.getElementById("smsdisplay");
+    const videoctx = videocanvas.getContext("2d");
+    glbVDP.drawScreen(videoctx);
 
     setTimeout(emulate,10);
 }
@@ -149,6 +154,13 @@ function handleCartridgeUpload(fls)
 	fileReader.readAsArrayBuffer(fls[0]);	
 }
 
+function runCPUTests()
+{
+    var trunner=new cpuTestRunner("tests\00.json");
+
+    
+}
+
 window.onload = (event) => 
 {
     document.onkeydown = function(e)
@@ -156,6 +168,7 @@ window.onload = (event) =>
         if (e.key=="s")
         {
             glbCPU.executeOne();
+            glbVDP.update();
             e.preventDefault();
         }
         else if (e.key=="r")
@@ -163,6 +176,7 @@ window.onload = (event) =>
             while (glbCPU.registers.pc!=glbBreakpoint)
             {
                 glbCPU.executeOne();
+                glbVDP.update();
             }
             e.preventDefault();
         }
@@ -186,7 +200,7 @@ window.onload = (event) =>
 
     canvas.addEventListener("mousedown", function (e) 
     {
-        var decodedInstrs=glbCPU.debugInstructions(16);
+        var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
 
         var rect = canvas.getBoundingClientRect();
         var mousex=(e.clientX-rect.left);
