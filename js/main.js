@@ -154,29 +154,61 @@ function handleCartridgeUpload(fls)
 	fileReader.readAsArrayBuffer(fls[0]);	
 }
 
-function runCPUTests()
+function gotoAddress()
+{
+    var addr=document.getElementById("bpaddress").value;
+    if (addr=="") return;
+
+    const intAddr=parseInt(addr,16);
+    glbBreakpoint=intAddr;
+
+    while (glbCPU.registers.pc!=glbBreakpoint)
+    {
+        glbCPU.executeOne();
+        glbVDP.update();
+    }
+}
+
+function runCPUTests(t)
 {
     var tstMMU=new testMMU();
     var refCPU=new z80cpu(tstMMU);
 
-    for (var o=0;o<refCPU.unprefixedOpcodes.length;o++)
+    if (t==0)
     {
-        if ((refCPU.unprefixedOpcodes[o]!=undefined)&&(o!=0xdb))
+        for (var o=0;o<refCPU.unprefixedOpcodes.length;o++)
+        //o=0xdb;
         {
-            var trunner=new cpuTestRunner("tests/"+o.toString(16).padStart(2,'0')+".json");
+            if ((refCPU.unprefixedOpcodes[o]!=undefined)&&(o!=0xdb))
+            {
+                var trunner=new cpuTestRunner("tests/"+o.toString(16).padStart(2,'0')+".json");
+            }
         }
     }
+    else if (t==0xed)
+    {
+        for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if ((refCPU.prefixedOpcodes[o]!=undefined)&&(o!=0xb3)&&(o!=0x78))
+            {
+                var trunner=new cpuTestRunner("tests/ed "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
+    else if (t==0xcb)
+    {
+        for (var o=0;o<refCPU.prefixcbOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if (refCPU.prefixcbOpcodes[o]!=undefined)
+            {
+                var trunner=new cpuTestRunner("tests/cb "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
+  
 
-/*    
-    for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-    //var o=0xb3;
-    {
-        if (refCPU.prefixedOpcodes[o]!=undefined)
-        {
-            var trunner=new cpuTestRunner("tests/ed "+o.toString(16).padStart(2,'0')+".json");
-        }
-    }
-*/
     
 }
 

@@ -55,13 +55,22 @@ class cpuTestRunner
 
                 // set CPU registers to test case's
                 this.theCpu.registers.a=this.testJsonObject[testCaseNum].initial.a;
+                this.theCpu.shadowRegisters.a=this.testJsonObject[testCaseNum].initial.af_>>8;
                 this.theCpu.registers.b=this.testJsonObject[testCaseNum].initial.b;
+                this.theCpu.shadowRegisters.b=this.testJsonObject[testCaseNum].initial.bc_>>8;
                 this.theCpu.registers.c=this.testJsonObject[testCaseNum].initial.c;
+                this.theCpu.shadowRegisters.c=this.testJsonObject[testCaseNum].initial.bc_&0xff;
                 this.theCpu.registers.d=this.testJsonObject[testCaseNum].initial.d;
+                this.theCpu.shadowRegisters.d=this.testJsonObject[testCaseNum].initial.de_>>8;
                 this.theCpu.registers.e=this.testJsonObject[testCaseNum].initial.e;
+                this.theCpu.shadowRegisters.e=this.testJsonObject[testCaseNum].initial.de_&0xff;
                 this.theCpu.registers.f=this.testJsonObject[testCaseNum].initial.f;
+                this.theCpu.shadowRegisters.f=this.testJsonObject[testCaseNum].initial.af_&0xff;
                 this.theCpu.registers.h=this.testJsonObject[testCaseNum].initial.h;
+                this.theCpu.shadowRegisters.h=this.testJsonObject[testCaseNum].initial.hl_>>8;
                 this.theCpu.registers.l=this.testJsonObject[testCaseNum].initial.l;
+                this.theCpu.shadowRegisters.l=this.testJsonObject[testCaseNum].initial.hl_&0xff;
+
                 this.theCpu.registers.pc=this.testJsonObject[testCaseNum].initial.pc;
                 this.theCpu.registers.sp=this.testJsonObject[testCaseNum].initial.sp;
 
@@ -71,7 +80,11 @@ class cpuTestRunner
                 // compare registers with test case's
                 if (this.theCpu.registers.a!=this.testJsonObject[testCaseNum].final.a)
                 {
-                    console.log("testRunner::a is different from test case - case "+this.testJsonObject[testCaseNum].name);
+                    console.log("testRunner::a is different from test case - initial a: ["+
+                    this.testJsonObject[testCaseNum].initial.a.toString(16)+"] emulated a: ["+
+                    this.theCpu.registers.a.toString(16)+"] test final a ["+
+                    this.testJsonObject[testCaseNum].final.a.toString(16)+"]"
+                    ); 
                     testFailed=true;
                 }
                 if (this.theCpu.registers.b!=this.testJsonObject[testCaseNum].final.b)
@@ -96,8 +109,9 @@ class cpuTestRunner
                 }
                 if ((this.theCpu.registers.f&0xd7)!=(this.testJsonObject[testCaseNum].final.f&0xd7))
                 {
-                    console.log("testRunner::f is different from test case - emulated f: ["+
-                    this.toBinary(this.theCpu.registers.f)+"] test f ["+
+                    console.log("testRunner::f is different from test case - initial f: ["+
+                    this.toBinary(this.testJsonObject[testCaseNum].initial.f)+" emulated f: ["+
+                    this.toBinary(this.theCpu.registers.f)+"] final f ["+
                     this.toBinary(this.testJsonObject[testCaseNum].final.f)+"]"
                     );
                     testFailed=true;
