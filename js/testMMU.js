@@ -23,6 +23,8 @@ class testMMU
 
     readAddr(addr)
     {
+        addr&=0xffff;
+
         if ((addr>=0)&&(addr<=0xffff))
         {
             return this.ram64k[addr];            
@@ -49,6 +51,15 @@ class testMMU
         return (this.readAddr(addr&0xffff)|(((this.readAddr((addr+1)&0xffff)&0xff)<<8)))&0xffff;
     }
 
+	writeAddr16bit(address, word) 
+    {
+		var byte1 = word & 0xFF;
+		var byte2 = word >> 8;
+
+		this.writeAddr(address, byte1);
+		this.writeAddr(address + 1, byte2);
+	}    
+
     getWrappedAddr(addr)
     {
         if ((addr & 0xff) == 0xff)
@@ -60,5 +71,15 @@ class testMMU
             return ((this.readAddr(addr + 1)) << 8) | (this.readAddr(addr));
         }
     }    
+
+    writePort(p,v)
+    {
+    }
+
+    readPort(p)
+    {
+        return 0;
+    }
+
 
 }

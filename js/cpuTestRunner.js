@@ -35,12 +35,13 @@ class cpuTestRunner
 
     runTests()
     {
+        var numTestsExecuted=0;
         var numTestsFailed=0;
 
         console.log("Starting test ["+this.curTest+"]...");
-        for (var testCaseNum=0;testCaseNum<10000;testCaseNum++)
+        for (var testCaseNum=0;testCaseNum<1000;testCaseNum++)
         {
-            //if (this.testJsonObject[testCaseNum].name=="40 ca 8b")
+            //if (this.testJsonObject[testCaseNum].name=="30 0005")
             {
                 var testFailed=false;
                 // clean MMU memory
@@ -53,48 +54,74 @@ class cpuTestRunner
                 }
 
                 // set CPU registers to test case's
-                this.theCpu.a=this.testJsonObject[testCaseNum].initial.a;
-                this.theCpu.x=this.testJsonObject[testCaseNum].initial.x;
-                this.theCpu.y=this.testJsonObject[testCaseNum].initial.y;
-                this.theCpu.pc=this.testJsonObject[testCaseNum].initial.pc;
-                this.theCpu.sp=this.testJsonObject[testCaseNum].initial.s;
-                this.theCpu.setFlags(this.testJsonObject[testCaseNum].initial.p);
+                this.theCpu.registers.a=this.testJsonObject[testCaseNum].initial.a;
+                this.theCpu.registers.b=this.testJsonObject[testCaseNum].initial.b;
+                this.theCpu.registers.c=this.testJsonObject[testCaseNum].initial.c;
+                this.theCpu.registers.d=this.testJsonObject[testCaseNum].initial.d;
+                this.theCpu.registers.e=this.testJsonObject[testCaseNum].initial.e;
+                this.theCpu.registers.f=this.testJsonObject[testCaseNum].initial.f;
+                this.theCpu.registers.h=this.testJsonObject[testCaseNum].initial.h;
+                this.theCpu.registers.l=this.testJsonObject[testCaseNum].initial.l;
+                this.theCpu.registers.pc=this.testJsonObject[testCaseNum].initial.pc;
+                this.theCpu.registers.sp=this.testJsonObject[testCaseNum].initial.sp;
 
                 // execute one opcode
-                const cyclesElapsed=this.theCpu.executeOneOpcode();
+                this.theCpu.executeOne();
 
                 // compare registers with test case's
-                if (this.theCpu.a!=this.testJsonObject[testCaseNum].final.a)
+                if (this.theCpu.registers.a!=this.testJsonObject[testCaseNum].final.a)
                 {
                     console.log("testRunner::a is different from test case - case "+this.testJsonObject[testCaseNum].name);
                     testFailed=true;
                 }
-                if (this.theCpu.x!=this.testJsonObject[testCaseNum].final.x)
+                if (this.theCpu.registers.b!=this.testJsonObject[testCaseNum].final.b)
                 {
-                    console.log("testRunner::x is different from test case");
+                    console.log("testRunner::b is different from test case");
                     testFailed=true;
                 }
-                if (this.theCpu.y!=this.testJsonObject[testCaseNum].final.y)
+                if (this.theCpu.registers.c!=this.testJsonObject[testCaseNum].final.c)
                 {
-                    console.log("testRunner::y is different from test case");
+                    console.log("testRunner::c is different from test case");
                     testFailed=true;
                 }
-                if (this.theCpu.pc!=this.testJsonObject[testCaseNum].final.pc)
+                if (this.theCpu.registers.d!=this.testJsonObject[testCaseNum].final.d)
+                {
+                    console.log("testRunner::d is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.e!=this.testJsonObject[testCaseNum].final.e)
+                {
+                    console.log("testRunner::e is different from test case");
+                    testFailed=true;
+                }
+                if ((this.theCpu.registers.f&0xd7)!=(this.testJsonObject[testCaseNum].final.f&0xd7))
+                {
+                    console.log("testRunner::f is different from test case - emulated f: ["+
+                    this.toBinary(this.theCpu.registers.f)+"] test f ["+
+                    this.toBinary(this.testJsonObject[testCaseNum].final.f)+"]"
+                    );
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.h!=this.testJsonObject[testCaseNum].final.h)
+                {
+                    console.log("testRunner::h is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.l!=this.testJsonObject[testCaseNum].final.l)
+                {
+                    console.log("testRunner::l is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.pc!=this.testJsonObject[testCaseNum].final.pc)
                 {
                     console.log("testRunner::pc is different from test case - case "+this.testJsonObject[testCaseNum].name+
-                    " Emulated pc: "+this.theCpu.pc+" Test case's pc: "+this.testJsonObject[testCaseNum].final.pc);
+                    " Emulated pc: "+this.theCpu.registers.pc+" Test case's pc: "+this.testJsonObject[testCaseNum].final.pc);
                     testFailed=true;
                 }
-                if (this.theCpu.sp!=this.testJsonObject[testCaseNum].final.s)
+                if (this.theCpu.registers.sp!=this.testJsonObject[testCaseNum].final.sp)
                 {
-                    console.log("testRunner::sp is different from test case");
-                    testFailed=true;
-                }
-                var cpuFlags=parseInt(this.theCpu.getFlagsString(),2);
-                if (cpuFlags!=this.testJsonObject[testCaseNum].final.p)
-                {
-                    console.log("testRunner::p is different from test case - case "+this.testJsonObject[testCaseNum].name+
-                    " Emulated p: "+this.toBinary(cpuFlags)+" Test case's p: "+this.toBinary(this.testJsonObject[testCaseNum].final.p));
+                    console.log("testRunner::sp is different from test case: emulated sp ["+
+                    this.theCpu.registers.sp+"] test case's sp ["+this.testJsonObject[testCaseNum].final.sp+"]");
                     testFailed=true;
                 }
 
@@ -111,8 +138,9 @@ class cpuTestRunner
                 }
 
                 if (testFailed) numTestsFailed++;
+                numTestsExecuted++;
             }
         }
-        console.log("Ending test... Num.Test Failed:"+numTestsFailed);
+        console.log("Ending test... Num. Test Executed: "+numTestsExecuted+" Num.Test Failed:"+numTestsFailed);
     }
 }

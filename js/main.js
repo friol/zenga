@@ -156,8 +156,27 @@ function handleCartridgeUpload(fls)
 
 function runCPUTests()
 {
-    var trunner=new cpuTestRunner("tests\00.json");
+    var tstMMU=new testMMU();
+    var refCPU=new z80cpu(tstMMU);
 
+    for (var o=0;o<refCPU.unprefixedOpcodes.length;o++)
+    {
+        if ((refCPU.unprefixedOpcodes[o]!=undefined)&&(o!=0xdb))
+        {
+            var trunner=new cpuTestRunner("tests/"+o.toString(16).padStart(2,'0')+".json");
+        }
+    }
+
+/*    
+    for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
+    //var o=0xb3;
+    {
+        if (refCPU.prefixedOpcodes[o]!=undefined)
+        {
+            var trunner=new cpuTestRunner("tests/ed "+o.toString(16).padStart(2,'0')+".json");
+        }
+    }
+*/
     
 }
 

@@ -18,6 +18,8 @@ class smsMmu
 
     readAddr(addr)
     {
+        addr&=0xffff;
+
         if ((addr>=0)&&(addr<=0x7fff))
         {
             // unbanked cartridge, for now
