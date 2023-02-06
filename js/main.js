@@ -165,7 +165,7 @@ function gotoAddress()
     while (glbCPU.registers.pc!=glbBreakpoint)
     {
         glbCPU.executeOne();
-        glbVDP.update();
+        glbVDP.update(glbCPU);
     }
 }
 
@@ -219,15 +219,20 @@ window.onload = (event) =>
         if (e.key=="s")
         {
             glbCPU.executeOne();
-            glbVDP.update();
+            glbVDP.update(glbCPU);
             e.preventDefault();
         }
         else if (e.key=="r")
         {
-            while (glbCPU.registers.pc!=glbBreakpoint)
+            var goout=false;
+            while ((glbCPU.registers.pc!=glbBreakpoint)&&(!goout))
             {
                 glbCPU.executeOne();
-                glbVDP.update();
+                glbVDP.update(glbCPU);
+                if (glbCPU.maskableInterruptWaiting)
+                {
+                    goout=true;
+                }
             }
             e.preventDefault();
         }

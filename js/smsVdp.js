@@ -33,13 +33,20 @@ class smsVDP
         this.nameTableBaseAddress=0;
         this.vcounter=0;
         this.hcounter=0;
+        this.register01=0;
     }
 
     writeByteToRegister(registerIndex, dataByte)
     {
         console.log("VDP::write byte 0x"+dataByte.toString(16).padStart(2,'0')+" to register "+registerIndex);
 
-        if (registerIndex==2)        
+        if (registerIndex==1)
+        {
+            /*  Register $01 - Mode Control No. 2 */
+            console.log("VDP::register 1 write (mode control 2)");
+            this.register01=dataByte;
+        }
+        else if (registerIndex==2)        
         {
             /*  Register $02 - Name Table Base Address */
             console.log("VDP::register 2 write (name table base address)");
@@ -146,7 +153,7 @@ class smsVDP
         return 0;
     }
 
-    drawTile(ctx,addr,x,y)
+    drawTile(ctx,addr,x,y,pal)
     {
         for (var yt=0;yt<8;yt++)
         {
@@ -163,7 +170,7 @@ class smsVDP
                 byte3>>=(7-xt); byte3&=1;
 
                 var cramIdx=byte0|(byte1<<1)|(byte2<<2)|(byte3<<3);
-                var curbyte=this.colorRam[cramIdx];
+                var curbyte=this.colorRam[cramIdx+(pal*16)];
                 var red=(curbyte&0x03)*64;
                 var green=((curbyte>>2)&0x03)*64;
                 var blue=((curbyte>>4)&0x03)*64;
@@ -183,7 +190,7 @@ class smsVDP
         {
             for (var xtile=0;xtile<16;xtile++)
             {
-                this.drawTile(ctx,addrInMemory,x+(xtile*8),y+(ytile*8));
+                this.drawTile(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
                 addrInMemory+=32; /* Each tile uses 32 bytes */
             }
         }
@@ -205,7 +212,7 @@ class smsVDP
 
     }
 
-    update()
+    update(theCPU)
     {
         // TODO check this
         // update counters like V and H
@@ -218,6 +225,11 @@ class smsVDP
             if (this.vcounter>192)
             {
                 this.vcounter=0;
+                if (this.register01&0x20)
+                {
+                    // TODO: update VDP status flag
+                    theCPU.raiseMaskableInterrupt();
+                }
             }
         }
     }
@@ -226,7 +238,7 @@ class smsVDP
         Each word in the name table has the following layout:
 
         MSB          LSB
-        ---pcvhnnnnnnnnn
+        ---pcvhn nnnnnnnn
 
         - = Unused. Some games use these bits as flags for collision and damage
             zones. (such as Wonderboy in Monster Land, Zillion 2)
@@ -249,7 +261,9 @@ class smsVDP
                 var word=this.vRam[nameTableBaseAddress];
                 word|=this.vRam[nameTableBaseAddress+1]<<8;
 
-                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8);   
+                const pal=(word>>11)&0x01;
+
+                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8,pal);   
                 nameTableBaseAddress+=2;             
             }
         }
