@@ -29,6 +29,7 @@ class smsVDP
         this.dataPortReadWriteAddress=0;
         this.dataPortWriteMode=vdpDataPortWriteMode.toVRAM;
         this.readBufferByte=0;
+        this.statusFlags=0;
 
         this.nameTableBaseAddress=0;
         this.vcounter=0;
@@ -92,10 +93,11 @@ class smsVDP
 			let controlCode=(this.controlWord&0xc000) >> 14;
 			this.dataPortReadWriteAddress=(this.controlWord&0x3fff);        
 
-            console.log("VDP::word written to control port, controlCode "+controlCode.toString(16)+" address "+this.dataPortReadWriteAddress.toString(16));
+            //console.log("VDP::word written to control port, controlCode "+controlCode.toString(16)+" address "+this.dataPortReadWriteAddress.toString(16));
 
             if (controlCode==0)
             {
+                // TODO
             }
             else if (controlCode==1)
             {
@@ -148,6 +150,37 @@ class smsVDP
 		this.dataPortReadWriteAddress&=0x3fff;
 		this.readBufferByte=b;
     }
+
+    readByteFromDataPort()
+    {
+		this.controlWordFlag = false;
+
+		let byte = this.readBufferByte;
+		this.readBufferByte = this.vRam[this.dataPortReadWriteAddress];
+
+		this.dataPortReadWriteAddress++;
+		this.dataPortReadWriteAddress &= 0x3fff;
+
+		return byte;
+	}    
+
+    /*
+        Reading the control port returns a byte containing status flags:
+
+        MSB                         LSB
+        INT OVR COL --- --- --- --- ---
+    */    
+    readByteFromControlPort()
+    {
+		this.controlWordFlag = false;
+		var currentStatusFlags = this.statusFlags;
+
+		// Clear the flags.
+		this.statusFlags &= 0x1f;
+		currentStatusFlags |= 0x1f;
+
+		return currentStatusFlags;
+	}    
 
     readDataPort(p)
     {

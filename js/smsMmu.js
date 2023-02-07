@@ -82,11 +82,41 @@ class smsMmu
 
     }
 
-    readPort(p)
+    readPort(port)
     {
-        if (p==0x7e)
+        if (port==0x7e)
         {
-            return this.theVDP.readDataPort(p);
+            return this.theVDP.readDataPort(port);
+        }
+        else if (port >= 0x80 && port <= 0xbf) 
+        {
+			if (port % 2 == 0) 
+            {
+				return this.theVDP.readByteFromDataPort();
+			} 
+            else 
+            {
+				return this.theVDP.readByteFromControlPort();
+			}        
+        }
+        else if (port >= 0xc0 && port <= 0xff) 
+        {
+			if (port % 2 == 0) 
+            {
+                // TODO
+				//return this.input.readByteFromPortAB();
+                return 0xff;
+			} 
+            else 
+            {
+                // TODO
+				//return this.input.readByteFromPortBMisc();
+                return 0xff;
+			}
+		}        
+        else
+        {
+            console.log("MMU::reading from unknown port "+port.toString(16));
         }
 
         return 0;
