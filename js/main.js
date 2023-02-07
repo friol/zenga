@@ -19,6 +19,9 @@ var glbBpLine=0;
 var glbBreakpoint=-1;
 const numDebuggerLines=20;
 
+var glbEmulatorStatus=0; // 0 debugging, 1 running
+var glbVideoctx;
+
 //
 
 function drawDebugPanel(instructions)
@@ -110,19 +113,42 @@ function emulate()
     var fpeez=(1000/frameTime).toFixed(1);
     fpsOut.innerHTML = "going at " + fpeez + " fps";
 
-    var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
-    drawDebugPanel(decodedInstrs);
+    if (glbEmulatorStatus==1)
+    {
+        // emulate a batch of instructions (one frame)
+        var emulatedCycles=0;
 
-    const canvas=document.getElementById("debugCanvas");
-    const ctx = canvas.getContext("2d");
-    glbVDP.debugPalette(ctx,480,390);
-    glbVDP.debugTiles(ctx,500,0);
+        // Refresh rate: 59.922743 Hz (NTSC)
+        // Clock rate: 3.579545 MHz (NTSC)
+        var targetCycles=Math.floor(glbCPU.clockRate/59.922743);
 
-    const videocanvas=document.getElementById("smsdisplay");
-    const videoctx = videocanvas.getContext("2d");
-    glbVDP.drawScreen(videoctx);
+        while (emulatedCycles<targetCycles)
+        {
+            var cyc=glbCPU.executeOne();
+            glbVDP.update(glbCPU);
+            emulatedCycles+=cyc;
+        }
+    }
+
+    drawScreen();
 
     setTimeout(emulate,10);
+}
+
+function drawScreen()
+{
+    //if (glbEmulatorStatus==0)
+    {
+        var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
+        drawDebugPanel(decodedInstrs);
+        const canvas=document.getElementById("debugCanvas");
+        const ctx = canvas.getContext("2d");
+        glbVDP.debugPalette(ctx,480,390);
+        glbVDP.debugTiles(ctx,500,0);
+    }
+
+    glbVDP.drawScreen(glbVideoctx);
+    glbVDP.hyperBlit(glbVideoctx);
 }
 
 function handleCartridgeUpload(fls)
@@ -196,6 +222,28 @@ function runCPUTests(t)
             }
         }
     }
+    else if (t==0xdd)
+    {
+        for (var o=0;o<refCPU.prefixddOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if ((refCPU.prefixddOpcodes[o]!=undefined))
+            {
+                var trunner=new cpuTestRunner("tests/dd "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
+    else if (t==0xddcb)
+    {
+        for (var o=0;o<refCPU.prefixddcbOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if ((refCPU.prefixddcbOpcodes[o]!=undefined))
+            {
+                var trunner=new cpuTestRunner("tests/dd cb __ "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
     else if (t==0xcb)
     {
         for (var o=0;o<refCPU.prefixcbOpcodes.length;o++)
@@ -204,6 +252,17 @@ function runCPUTests(t)
             if (refCPU.prefixcbOpcodes[o]!=undefined)
             {
                 var trunner=new cpuTestRunner("tests/cb "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
+    else if (t==0xfd)
+    {
+        for (var o=0;o<refCPU.prefixfdOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if (refCPU.prefixfdOpcodes[o]!=undefined)
+            {
+                var trunner=new cpuTestRunner("tests/fd "+o.toString(16).padStart(2,'0')+".json");
             }
         }
     }
@@ -218,6 +277,7 @@ window.onload = (event) =>
 	{
         if (e.key=="s")
         {
+            glbEmulatorStatus=0;
             glbCPU.executeOne();
             glbVDP.update(glbCPU);
             e.preventDefault();
@@ -235,6 +295,11 @@ window.onload = (event) =>
                 }
             }
             e.preventDefault();
+        }
+        else if (e.key=="g")
+        {
+            // go (with the flow)
+            glbEmulatorStatus=1;
         }
     }
 
@@ -269,4 +334,7 @@ window.onload = (event) =>
     });    
 
     //document.addEventListener('fullscreenchange', fullscreenchanged);
+
+    const videocanvas=document.getElementById("smsdisplay");
+    glbVideoctx = videocanvas.getContext("2d");
 }

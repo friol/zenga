@@ -34,6 +34,12 @@ class smsVDP
         this.vcounter=0;
         this.hcounter=0;
         this.register01=0;
+
+        this.glbResolutionX=256;
+        this.glbResolutionY=192;
+        this.glbFrameBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY*4);
+        this.glbImgData=undefined;
+        this.glbCanvasRenderer=undefined;
     }
 
     writeByteToRegister(registerIndex, dataByte)
@@ -174,9 +180,13 @@ class smsVDP
                 var red=(curbyte&0x03)*64;
                 var green=((curbyte>>2)&0x03)*64;
                 var blue=((curbyte>>4)&0x03)*64;
-                ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
-    
-                ctx.fillRect(x+xt,y+yt,1,1);
+
+                //ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
+                //ctx.fillRect(x+xt,y+yt,1,1);
+                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+0]=red;
+                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+1]=green;
+                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+2]=blue;
+                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+3]=255;
             }
 
             addr+=4;
@@ -186,11 +196,11 @@ class smsVDP
     debugTiles(ctx,x,y)
     {
         var addrInMemory=0;
-        for (var ytile=0;ytile<16;ytile++)
+        for (var ytile=0;ytile<32;ytile++)
         {
             for (var xtile=0;xtile<16;xtile++)
             {
-                this.drawTile(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
+                //this.drawTile(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
                 addrInMemory+=32; /* Each tile uses 32 bytes */
             }
         }
@@ -210,6 +220,21 @@ class smsVDP
             ctx.fillRect(x+(color*quadSize),y,quadSize,quadSize);
         }
 
+    }
+
+    hyperBlit(ctx)
+    {
+        if (this.glbImgData==undefined) this.glbImgData = ctx.getImageData(0, 0, this.glbResolutionX,this.glbResolutionY);
+        this.glbImgData.data.set(this.glbFrameBuffer);
+    
+        if (this.glbCanvasRenderer==undefined)
+        {
+            this.glbCanvasRenderer = document.createElement('canvas');
+            this.glbCanvasRenderer.width = this.glbImgData.width;
+            this.glbCanvasRenderer.height = this.glbImgData.height;
+        }
+        this.glbCanvasRenderer.getContext('2d', { willReadFrequently: true }).putImageData(this.glbImgData, 0, 0);
+        ctx.drawImage(this.glbCanvasRenderer,0,0,this.glbResolutionX,this.glbResolutionY);
     }
 
     update(theCPU)

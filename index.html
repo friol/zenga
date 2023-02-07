@@ -30,11 +30,17 @@
         <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
         <br/><br/>
         <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
-        <button onclick="runCPUTests(0xed);">Test 0xED prefix opcodes!</button>
-        <button onclick="runCPUTests(0xcb);">Test 0xCB prefix opcodes!</button>
+        <button onclick="runCPUTests(0xcb);">Test 0xCB opcodes!</button>
+        <button onclick="runCPUTests(0xdd);">Test 0xDD opcodes!</button>
+        <button onclick="runCPUTests(0xddcb);">Test 0xDDCB opcodes!</button>
+        <button onclick="runCPUTests(0xed);">Test 0xED opcodes!</button>
+        <button onclick="runCPUTests(0xfd);">Test 0xFD opcodes!</button>
         <br/><br/>
-        <input type="text" id="bpaddress" name="bpaddress" value="43d">
+        <input type="text" id="bpaddress" name="bpaddress" value="453">
         <button onclick="gotoAddress();">Goto address</button>
+        <br/>
+        <br/>
+        <button onclick="">RUN!</button>
 
     </body>
 </html>
