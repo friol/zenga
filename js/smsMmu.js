@@ -69,15 +69,30 @@ class smsMmu
 
     // I/O ports
 
-    writePort(p,v)
+    writePort(port,v)
     {
-        if (p==0xbf)
+        if (port >= 0x40 && port <= 0x7f) 
         {
-            this.theVDP.writeByteToControlPort(v);
-        }
-        else if (p==0xbe)
+            // TODO soundchip
+		} 
+        else if (port >= 0x80 && port <= 0xbf) 
         {
-            this.theVDP.writeByteToDataPort(v);
+			if (port % 2 == 0) 
+            {
+                this.theVDP.writeByteToDataPort(v);
+			} 
+            else 
+            {
+                this.theVDP.writeByteToControlPort(v);
+			}
+		} 
+        else if (port >= 0xc0 && port <= 0xff) 
+        {
+			// No effect.
+		}
+        else
+        {
+            console.log("MMU::write to unhandled port "+port.toString(16)+" of value "+v);
         }
 
     }

@@ -2684,6 +2684,15 @@ class z80cpu
             self.incPc(2); 
         }, "RES 5,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0xbe]=[function()
+        {
+            const hl=self.registers.l|(self.registers.h<<8);
+            var content=self.theMMU.readAddr(hl);
+            content&=~0x80;
+            self.theMMU.writeAddr(hl,content);
+            self.incPc(2); 
+        }, "RES 7,(HL)", 8, 0, false];
+    
         this.prefixcbOpcodes[0xbf]=[function()
         {
             self.registers.a&=~0x80;
