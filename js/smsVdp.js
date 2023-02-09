@@ -24,6 +24,8 @@ class smsVDP
             this.vRam.push(b);            
         }
 
+        this.clockCyclesPerScanline=3420;
+
         this.controlWordFlag=false;
         this.controlWord=0;
         this.dataPortReadWriteAddress=0;
@@ -270,14 +272,14 @@ class smsVDP
         ctx.drawImage(this.glbCanvasRenderer,0,0,this.glbResolutionX,this.glbResolutionY);
     }
 
-    update(theCPU)
+    update(theCPU,cycles)
     {
         // TODO check this
         // update counters like V and H
-        this.hcounter+=1;
-        if (this.hcounter>256)
+        this.hcounter+=cycles;
+        if (this.hcounter>=this.clockCyclesPerScanline)
         {
-            this.hcounter=0;
+            this.hcounter%=this.clockCyclesPerScanline;
             this.vcounter+=1;
 
             if (this.vcounter>192)

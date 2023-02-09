@@ -13,6 +13,8 @@ class smsMmu
         this.theCartridge=theCart;
         this.theVDP=theVDP;
 
+        this.portAB=0xff;
+
         console.log("MMU::Inited");
     }
 
@@ -67,7 +69,17 @@ class smsMmu
 		this.writeAddr(address + 1, byte2);
 	}    
 
-    // I/O ports
+    // I/O ports&input
+
+    pressButton1()
+    {
+        this.portAB&=0xff^0x10;
+    }
+
+    depressButton1()
+    {
+        this.portAB|=0x10;
+    }
 
     writePort(port,v)
     {
@@ -119,8 +131,7 @@ class smsMmu
 			if (port % 2 == 0) 
             {
                 // TODO
-				//return this.input.readByteFromPortAB();
-                return 0xff;
+                return this.portAB;
 			} 
             else 
             {

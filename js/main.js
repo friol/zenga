@@ -125,7 +125,7 @@ function emulate()
         while (emulatedCycles<targetCycles)
         {
             var cyc=glbCPU.executeOne();
-            glbVDP.update(glbCPU);
+            glbVDP.update(glbCPU,cyc);
             emulatedCycles+=cyc;
         }
     }
@@ -190,8 +190,8 @@ function gotoAddress()
 
     while (glbCPU.registers.pc!=glbBreakpoint)
     {
-        glbCPU.executeOne();
-        glbVDP.update(glbCPU);
+        var cyc=glbCPU.executeOne();
+        glbVDP.update(glbCPU,cyc);
     }
 }
 
@@ -278,8 +278,8 @@ window.onload = (event) =>
         if (e.key=="s")
         {
             glbEmulatorStatus=0;
-            glbCPU.executeOne();
-            glbVDP.update(glbCPU);
+            var cyc=glbCPU.executeOne();
+            glbVDP.update(glbCPU,cyc);
             e.preventDefault();
         }
         else if (e.key=="r")
@@ -287,8 +287,8 @@ window.onload = (event) =>
             var goout=false;
             while ((glbCPU.registers.pc!=glbBreakpoint)&&(!goout))
             {
-                glbCPU.executeOne();
-                glbVDP.update(glbCPU);
+                var cyc=glbCPU.executeOne();
+                glbVDP.update(glbCPU,cyc);
                 if (glbCPU.maskableInterruptWaiting)
                 {
                     goout=true;
@@ -301,10 +301,20 @@ window.onload = (event) =>
             // go (with the flow)
             glbEmulatorStatus=1;
         }
+        else if (e.key=="1")
+        {
+            // 1, or start button
+            glbMMU.pressButton1();            
+        }
     }
 
     document.onkeyup = function(e)
 	{
+        if (e.key=="1")
+        {
+            // 1, or start button
+            glbMMU.depressButton1();            
+        }
     }
 
     var canvas = document.getElementById('debugCanvas');
