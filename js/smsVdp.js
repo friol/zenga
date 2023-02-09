@@ -21,7 +21,7 @@ class smsVDP
         this.vRam=new Array();
         for (var b=0;b<0x4000;b++)
         {
-            this.vRam.push(b);            
+            this.vRam.push(0);            
         }
 
         this.clockCyclesPerScanline=3420;
@@ -99,7 +99,12 @@ class smsVDP
 
             if (controlCode==0)
             {
-                // TODO
+                this.dataPortWriteMode = vdpDataPortWriteMode.toVRAM;
+
+				this.readBufferByte = this.vRam[this.dataPortReadWriteAddress];
+
+				this.dataPortReadWriteAddress++;
+				this.dataPortReadWriteAddress &= 0x3fff;                
             }
             else if (controlCode==1)
             {
@@ -240,7 +245,7 @@ class smsVDP
                 byte2>>=(7-xt); byte2&=1;
                 byte3>>=(7-xt); byte3&=1;
 
-                var cramIdx=byte0|(byte1<<1)|(byte2<<2)|(byte3<<3);
+                var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
                 var curbyte=this.colorRam[cramIdx+(pal*16)];
                 var red=(curbyte&0x03)*64;
                 var green=((curbyte>>2)&0x03)*64;

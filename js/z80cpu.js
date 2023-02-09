@@ -1432,6 +1432,54 @@ class z80cpu
 		}
 	}
 
+    executeLoadDecrement() 
+    {
+		let hl = this.registers.l|(this.registers.h<<8);
+		let de = this.registers.e|(this.registers.d<<8);
+		let bc = this.registers.c|(this.registers.b<<8);
+
+		let byte = this.theMMU.readAddr(hl);;
+        this.theMMU.writeAddr(de,byte);
+
+        hl=hl-1; hl&=0xffff;
+        de=de-1; de&=0xffff;
+        bc=bc-1; bc&=0xffff;
+
+        this.registers.l=hl&0xff; this.registers.h=hl>>8;
+        this.registers.e=de&0xff; this.registers.d=de>>8;
+        this.registers.c=bc&0xff; this.registers.b=bc>>8;
+
+		this.registers.f &= 0xc1;
+
+		let testByte = (byte + this.registers.a) & 0xff;
+
+		// C: Preserved.
+
+		// N: Reset.
+
+		// P/V: Set if BC is not 0.
+		if (bc > 0) {
+			this.registers.f |= z80flags.FLAG_PV;
+		}
+
+		// F3: Set if bit 3 of the test byte is set.
+		if (testByte & 0x08) {
+			this.registers.f |= z80flags.FLAG_F3;
+		}
+
+		// H: Reset.
+
+		// F5: Set if bit 1 of the test byte is set.
+		if (testByte & 0x02) {
+			this.registers.f |= z80flags.FLAG_F5;
+		}
+
+		// Z: Preserved.
+
+		// S: Preserved.
+
+	}
+
     executeCpi() 
     {
 		let hl = this.registers.l|(this.registers.h<<8);
@@ -3004,6 +3052,17 @@ class z80cpu
         }, "LD (%d),DE", 20, 2, false];
     
         this.prefixedOpcodes[0x56]=[function() { self.interruptMode = 1; self.incPc(2); }, "IM 1", 8, 0, false];
+
+        this.prefixedOpcodes[0x57]=[function()
+        {
+            // TODO: really?
+            self.registers.r+=2;
+            self.registers.a=self.registers.r;
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
+            self.incPc(2);
+        }, "LD A,I", 9, 2, false];
+    
         this.prefixedOpcodes[0x59]=[function()
         {
             self.theMMU.writePort(self.registers.c,self.registers.e);
@@ -3108,6 +3167,7 @@ class z80cpu
         this.prefixedOpcodes[0xa0]=[function() { self.executeLdi(); }, "LDI", 16, 0, false];
         this.prefixedOpcodes[0xa1]=[function() { self.executeCpi(); }, "CPI", 16, 0, false];
         this.prefixedOpcodes[0xa3]=[function() { self.executeOuti(); }, "OUTI", 16, 0, false];
+        this.prefixedOpcodes[0xa8]=[function() { self.executeLoadDecrement(); }, "LDD", 16, 0, false];
         
         this.prefixedOpcodes[0xb0]=[function() { self.executeLoadIncrementRepeat(); }, "LDIR", 16, 0, false];
         this.prefixedOpcodes[0xb8]=[function() { self.executeLoadDecrementRepeat(); }, "LDDR", 16, 0, false];
@@ -3210,6 +3270,12 @@ class z80cpu
             self.registers.h = self.sla_8bit(self.registers.h); 
             self.incPc(2); 
         }, "SLA H", 8, 0, false];
+
+        this.prefixcbOpcodes[0x25]=[function() 
+        {
+            self.registers.l = self.sla_8bit(self.registers.l); 
+            self.incPc(2); 
+        }, "SLA L", 8, 0, false];
             
         this.prefixcbOpcodes[0x27]=[function() 
         {
@@ -3302,6 +3368,12 @@ class z80cpu
             self.bit_8bit(self.registers.b, 0x02); 
             self.incPc(2); 
         }, "BIT 1,B", 8, 0, false];
+
+        this.prefixcbOpcodes[0x49]=[function() 
+        {
+            self.bit_8bit(self.registers.c, 0x02); 
+            self.incPc(2); 
+        }, "BIT 1,C", 8, 0, false];
             
         this.prefixcbOpcodes[0x4b]=[function() {self.bit_8bit(self.registers.e, 0x02); self.incPc(2); }, "BIT 1,E", 8, 0, false];
         this.prefixcbOpcodes[0x4c]=[function() {self.bit_8bit(self.registers.h, 0x02); self.incPc(2); }, "BIT 1,H", 8, 0, false];
@@ -3512,7 +3584,13 @@ class z80cpu
             self.theMMU.writeAddr(hl,content);
             self.incPc(2); 
         }, "SET 1,(HL)", 15, 0, false];
-    
+
+        this.prefixcbOpcodes[0xd0]=[function()
+        {
+            self.registers.b|=0x04;
+            self.incPc(2); 
+        }, "SET 2,B", 8, 0, false];
+            
         this.prefixcbOpcodes[0xd6]=[function()
         {
             const hl=self.registers.l|(self.registers.h<<8);
@@ -3598,6 +3676,15 @@ class z80cpu
             self.incPc(4); 
         }, "LD IY,%d", 14, 2, false];
 
+        this.prefixfdOpcodes[0x22]=[function() 
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+2);
+            var m2=self.theMMU.readAddr(self.registers.pc+3);
+            var iy=self.registers.iyl|(self.registers.iyh<<8);
+            self.theMMU.writeAddr16bit(m1|(m2<<8),iy);
+            self.incPc(4); 
+        }, "LD (%d),IY", 20, 2, false];
+    
         this.prefixfdOpcodes[0x23]=[function() 
         {
             var iy=self.registers.iyl|(self.registers.iyh<<8); 
