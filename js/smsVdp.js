@@ -194,6 +194,36 @@ class smsVDP
         return 0;
     }
 
+    drawTiledbg(ctx,addr,x,y,pal)
+    {
+        for (var yt=0;yt<8;yt++)
+        {
+            for (var xt=0;xt<8;xt++)
+            {
+                var byte0=this.vRam[addr]
+                var byte1=this.vRam[addr+1]
+                var byte2=this.vRam[addr+2]
+                var byte3=this.vRam[addr+3]
+
+                byte0>>=(7-xt); byte0&=1;
+                byte1>>=(7-xt); byte1&=1;
+                byte2>>=(7-xt); byte2&=1;
+                byte3>>=(7-xt); byte3&=1;
+
+                var cramIdx=byte0|(byte1<<1)|(byte2<<2)|(byte3<<3);
+                var curbyte=this.colorRam[cramIdx+(pal*16)];
+                var red=(curbyte&0x03)*64;
+                var green=((curbyte>>2)&0x03)*64;
+                var blue=((curbyte>>4)&0x03)*64;
+
+                ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
+                ctx.fillRect(x+xt,y+yt,1,1);
+            }
+
+            addr+=4;
+        }        
+    }
+
     drawTile(ctx,addr,x,y,pal)
     {
         for (var yt=0;yt<8;yt++)
@@ -235,7 +265,7 @@ class smsVDP
         {
             for (var xtile=0;xtile<16;xtile++)
             {
-                //this.drawTile(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
+                this.drawTiledbg(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
                 addrInMemory+=32; /* Each tile uses 32 bytes */
             }
         }

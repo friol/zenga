@@ -124,7 +124,9 @@ class cpuTestRunner
                 }
                 if (this.theCpu.registers.h!=this.testJsonObject[testCaseNum].final.h)
                 {
-                    console.log("testRunner::h is different from test case");
+                    console.log("testRunner::h is different from test case "+
+                        this.theCpu.registers.h.toString(16)+" "+this.testJsonObject[testCaseNum].final.h.toString(16)
+                        );
                     testFailed=true;
                 }
                 if (this.theCpu.registers.l!=this.testJsonObject[testCaseNum].final.l)

@@ -214,7 +214,7 @@ function runCPUTests(t)
     else if (t==0xed)
     {
         for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-        //var o=0xb3;
+        //var o=0x5a;
         {
             if ((refCPU.prefixedOpcodes[o]!=undefined)&&(o!=0xb3)&&(o!=0x78))
             {
@@ -266,8 +266,17 @@ function runCPUTests(t)
             }
         }
     }
-  
-
+    else if (t==0xfdcb)
+    {
+        for (var o=0;o<refCPU.prefixfdcbOpcodes.length;o++)
+        //var o=0xb3;
+        {
+            if ((refCPU.prefixfdcbOpcodes[o]!=undefined))
+            {
+                var trunner=new cpuTestRunner("tests/fd cb __ "+o.toString(16).padStart(2,'0')+".json");
+            }
+        }
+    }
     
 }
 

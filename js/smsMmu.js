@@ -38,6 +38,7 @@ class smsMmu
         else
         {
             console.log("MMU::Read from unknown address ["+addr+"]");
+            return 0;
         }
     }
 
