@@ -152,6 +152,62 @@ class z80cpu
         this.registers.pc&=0xffff;
     }
 
+    daa_8bit(v) 
+    {
+		let correctionFactor = 0;
+		let carryFlagWasSet = (this.registers.f & z80flags.FLAG_C) > 0;
+		let halfCarryFlagWasSet = (this.registers.f & z80flags.FLAG_H) > 0;
+		let subtractionFlagWasSet = (this.registers.f & z80flags.FLAG_N) > 0;
+
+		// Reset the flags (preserve N).
+		this.registers.f &= 0x02;
+
+		if (v > 0x99 || carryFlagWasSet) {
+			correctionFactor |= 0x60;
+			this.registers.f |= z80flags.FLAG_C;
+		}
+
+		if ((v & 0x0f) > 9 || halfCarryFlagWasSet) {
+			correctionFactor |= 0x06;
+		}
+
+		let newValue = v;
+
+		if (!subtractionFlagWasSet) {
+			newValue += correctionFactor;
+		} else {
+			newValue -= correctionFactor;
+		}
+
+		newValue &= 0xff;
+
+		if ((v & 0x10) ^ (newValue & 0x10)) {
+			this.registers.f |= z80flags.FLAG_H;
+		}
+
+		// P/V: Set if new value has even number of set bits.
+		if (this.parityLookUp[newValue]) 
+        {
+			this.registers.f |= z80flags.FLAG_PV;
+		}
+
+		// F3: Reset.
+
+		// F5: Reset.
+
+		// Z: Set if the value is zero.
+		if (newValue == 0) {
+			this.registers.f |= z80flags.FLAG_Z;
+		}
+
+		// S: Set if the twos-compliment value is negative.
+		if (newValue & 0x80) {
+			this.registers.f |= z80flags.FLAG_S;
+		}
+
+		return newValue;
+	}
+
     sbc_8bit(v1, v2) 
     {
 		let v3 = (this.registers.f & z80flags.FLAG_C) ? 1 : 0;
@@ -1723,7 +1779,9 @@ class z80cpu
             self.registers.h=m1;
             self.incPc(2); 
         }, "LD H,%d", 7, 1, false];
-    
+
+        this.unprefixedOpcodes[0x27]=[function() { self.registers.a = self.daa_8bit(self.registers.a); self.incPc(1); }, "DAA", 4, 0, false];
+        
         this.unprefixedOpcodes[0x28]=[function() 
         { 
             // TODO 12/7 cycles (12 if jumped, 7 otherwise)
@@ -2100,6 +2158,12 @@ class z80cpu
             self.registers.a=self.and_8bit(self.registers.a,self.registers.d);
             self.incPc(1); 
         },"AND D", 4, 0, false];
+
+        this.unprefixedOpcodes[0xa3]=[function()
+        { 
+            self.registers.a=self.and_8bit(self.registers.a,self.registers.e);
+            self.incPc(1); 
+        },"AND E", 4, 0, false];
             
         this.unprefixedOpcodes[0xa4]=[function()
         { 
@@ -2685,6 +2749,11 @@ class z80cpu
             self.registers.b=val>>8;
             self.incPc(4);
         }, "LD BC,(%d)", 20, 2, false];
+
+        this.prefixedOpcodes[0x4d]=[function()
+        {
+            self.registers.pc=self.popWord();
+        }, "RETI", 14, 0, false];
             
         this.prefixedOpcodes[0x51]=[function()
         {
@@ -2924,6 +2993,7 @@ class z80cpu
         }, "BIT 0,A", 8, 0, false];
             
         this.prefixcbOpcodes[0x4b]=[function() {self.bit_8bit(self.registers.e, 0x02); self.incPc(2); }, "BIT 1,E", 8, 0, false];
+        this.prefixcbOpcodes[0x4c]=[function() {self.bit_8bit(self.registers.h, 0x02); self.incPc(2); }, "BIT 1,H", 8, 0, false];
         this.prefixcbOpcodes[0x4d]=[function() {self.bit_8bit(self.registers.l, 0x02); self.incPc(2); }, "BIT 1,L", 8, 0, false];
         this.prefixcbOpcodes[0x4f]=[function() {self.bit_8bit(self.registers.a, 0x02); self.incPc(2); }, "BIT 1,A", 8, 0, false];
         this.prefixcbOpcodes[0x51]=[function() {self.bit_8bit(self.registers.c, 0x04); self.incPc(2); }, "BIT 2,C", 8, 0, false];
@@ -2975,6 +3045,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 1,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0x90]=[function()
+        {
+            self.registers.b&=~0x04;
+            self.incPc(2); 
+        }, "RES 2,B", 8, 0, false];
+    
         this.prefixcbOpcodes[0x91]=[function()
         {
             self.registers.c&=~0x04;
@@ -2989,7 +3065,13 @@ class z80cpu
             self.theMMU.writeAddr(hl,content);
             self.incPc(2); 
         }, "RES 2,(HL)", 15, 0, false];
-    
+
+        this.prefixcbOpcodes[0x97]=[function()
+        {
+            self.registers.a&=~0x04;
+            self.incPc(2); 
+        }, "RES 2,A", 8, 0, false];
+            
         this.prefixcbOpcodes[0x99]=[function()
         {
             self.registers.c&=~0x08;
