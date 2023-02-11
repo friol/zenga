@@ -19,7 +19,7 @@ var glbBpLine=0;
 var glbBreakpoint=-1;
 const numDebuggerLines=20;
 
-var glbEmulatorStatus=0; // 0 debugging, 1 running
+var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running
 var glbVideoctx;
 
 //
@@ -175,6 +175,7 @@ function handleCartridgeUpload(fls)
         glbMMU=new smsMmu(glbCartridge,glbVDP);
         glbCPU=new z80cpu(glbMMU);
 
+        glbEmulatorStatus=0;
         emulate();
 	};
 	fileReader.readAsArrayBuffer(fls[0]);	
@@ -315,6 +316,10 @@ window.onload = (event) =>
             // 1, or start button
             glbMMU.pressButton1();            
         }
+        else if (e.key=="ArrowDown")
+        {
+            glbMMU.pressDown();
+        }
     }
 
     document.onkeyup = function(e)
@@ -324,11 +329,17 @@ window.onload = (event) =>
             // 1, or start button
             glbMMU.depressButton1();            
         }
+        else if (e.key=="ArrowDown")
+        {
+            glbMMU.depressDown();
+        }
     }
 
     var canvas = document.getElementById('debugCanvas');
     canvas.addEventListener("mousemove", function (e) 
     {
+        if (glbEmulatorStatus==-1) return;
+
         var rect = canvas.getBoundingClientRect();
         var mousex=(e.clientX-rect.left);
         var mousey=(e.clientY-rect.top);
@@ -340,6 +351,8 @@ window.onload = (event) =>
 
     canvas.addEventListener("mousedown", function (e) 
     {
+        if (glbEmulatorStatus==-1) return; 
+
         var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
 
         var rect = canvas.getBoundingClientRect();
@@ -348,8 +361,6 @@ window.onload = (event) =>
 
         var row=Math.floor(mousey/20);
         glbBreakpoint=decodedInstrs[row].address;
-
-        //console.log("Click on "+mousex+" "+mousey);
     });    
 
     //document.addEventListener('fullscreenchange', fullscreenchanged);

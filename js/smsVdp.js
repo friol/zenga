@@ -24,7 +24,8 @@ class smsVDP
             this.vRam.push(0);            
         }
 
-        this.clockCyclesPerScanline=3420;
+        //this.clockCyclesPerScanline=3420;
+        this.clockCyclesPerScanline=311;
 
         this.controlWordFlag=false;
         this.controlWord=0;
@@ -325,7 +326,7 @@ class smsVDP
         {
             for (var xtile=0;xtile<16;xtile++)
             {
-                this.drawTiledbg(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
+                //this.drawTiledbg(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
                 addrInMemory+=32; /* Each tile uses 32 bytes */
             }
         }
@@ -372,12 +373,11 @@ class smsVDP
             this.hcounter%=this.clockCyclesPerScanline;
             this.vcounter+=1;
 
-            if (this.vcounter>192)
+            if (this.vcounter>=192)
             {
                 this.vcounter=0;
                 if (this.register01&0x20)
                 {
-                    // TODO: update VDP status flag
                     theCPU.raiseMaskableInterrupt();
                     this.statusFlags|=0x80;
                 }

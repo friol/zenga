@@ -82,6 +82,16 @@ class smsMmu
         this.portAB|=0x10;
     }
 
+    pressDown()
+    {
+        this.portAB&=0xff^0x02;
+    }
+
+    depressDown()
+    {
+        this.portAB|=0x02;
+    }
+
     writePort(port,v)
     {
         if (port >= 0x40 && port <= 0x7f) 
