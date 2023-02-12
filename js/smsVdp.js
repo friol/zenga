@@ -40,7 +40,9 @@ class smsVDP
 
         this.vcounter=0;
         this.hcounter=0;
+        this.register00=0;
         this.register01=0;
+        this.register06=0;
 
         this.glbResolutionX=256;
         this.glbResolutionY=192;
@@ -53,29 +55,37 @@ class smsVDP
     {
         console.log("VDP::write byte 0x"+dataByte.toString(16).padStart(2,'0')+" to register "+registerIndex);
 
-        if (registerIndex==1)
+        if (registerIndex==0)
+        {
+            /* Register $00 - Mode Control No. 1 */
+            this.register00=dataByte;
+
+            //D4 - (IE1) 1= Line interrupt enable
+            if (this.register00&0x10)
+            {
+                console.log("VDP::warning: line interrupt enabled");
+            }
+        }
+        else if (registerIndex==1)
         {
             /*  Register $01 - Mode Control No. 2 */
-            console.log("VDP::register 1 write (mode control 2)");
             this.register01=dataByte;
         }
         else if (registerIndex==2)        
         {
             /*  Register $02 - Name Table Base Address */
-            console.log("VDP::register 2 write (name table base address)");
             this.nameTableBaseAddress = dataByte;
         }
         else if (registerIndex==5)
         {
             /*  Register $05 - Sprite attribute Table Base Address */
-            console.log("VDP::register 5 write (sprite attribute table base address)");
             this.spriteAttributeTableBaseAddress = (dataByte & 0x7e) << 7;
         }
         else if (registerIndex==6)
         {
             /*  Register $06 - Sprite pattern generator Base Address */
-            console.log("VDP::register 5 write (sprite pattern generator base address)");
             this.spritePatternGeneratorBaseAddress=(dataByte & 0x04) << 11;
+            this.register06=dataByte;
         }
     }
 
@@ -100,15 +110,16 @@ class smsVDP
     {
         if (!this.controlWordFlag) 
         {
-			this.controlWord=b;
+			this.controlWord=b|(this.controlWord&0xff00);
 			this.controlWordFlag=true;
+            this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
 		} 
         else 
         {
-			this.controlWord |= (b<<8);
+			this.controlWord=(this.controlWord&0xff) | ((b&0x3f)<<8);
 			this.controlWordFlag=false;
 
-			let controlCode=(this.controlWord&0xc000) >> 14;
+			let controlCode=(b>>6)&3;
 			this.dataPortReadWriteAddress=(this.controlWord&0x3fff);        
 
             //console.log("VDP::word written to control port, controlCode "+controlCode.toString(16)+" address "+this.dataPortReadWriteAddress.toString(16));
@@ -117,7 +128,7 @@ class smsVDP
             {
                 this.dataPortWriteMode = vdpDataPortWriteMode.toVRAM;
 
-				this.readBufferByte = this.vRam[this.dataPortReadWriteAddress];
+				this.readBufferByte = this.vRam[this.dataPortReadWriteAddress&0x3fff]&0xff;
 
 				this.dataPortReadWriteAddress++;
 				this.dataPortReadWriteAddress &= 0x3fff;                
@@ -128,6 +139,8 @@ class smsVDP
             }
             else if (controlCode==2)
             {
+                this.dataPortWriteMode=vdpDataPortWriteMode.toVRAM;
+
                 let registerIndex = (this.controlWord & 0x0f00) >> 8;
 				let dataByte = this.controlWord & 0x00ff;
 
@@ -143,6 +156,7 @@ class smsVDP
     writeByteToDataPort(b)
     {
         this.controlWordFlag = false;
+		this.readBufferByte=b;
 
         if (this.dataPortWriteMode==vdpDataPortWriteMode.toVRAM)
         {
@@ -171,7 +185,6 @@ class smsVDP
 
 		this.dataPortReadWriteAddress++;
 		this.dataPortReadWriteAddress&=0x3fff;
-		this.readBufferByte=b;
     }
 
     readByteFromDataPort()
@@ -306,12 +319,16 @@ class smsVDP
                     var green=((curbyte>>2)&0x03)*64;
                     var blue=((curbyte>>4)&0x03)*64;
 
-                    //ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
-                    //ctx.fillRect(x+xt,y+yt,1,1);
-                    this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+0]=red;
-                    this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+1]=green;
-                    this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+2]=blue;
-                    this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+3]=255;
+                    const cx=spriteX+xt;
+                    const cy=spriteY+yt;
+
+                    if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.glbResolutionY))
+                    {
+                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+0]=red;
+                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+1]=green;
+                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+2]=blue;
+                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+3]=255;
+                    }
                 }
             }
 
@@ -373,7 +390,7 @@ class smsVDP
             this.hcounter%=this.clockCyclesPerScanline;
             this.vcounter+=1;
 
-            if (this.vcounter>=192)
+            if (this.vcounter>192)
             {
                 this.vcounter=0;
                 if (this.register01&0x20)
@@ -403,6 +420,23 @@ class smsVDP
 
     drawScreen(ctx)
     {
+        // check for blanked display
+        // D6 - (BLK) 1= Display visible, 0= display blanked.
+
+        if (!(this.register01&0x40))
+        {
+            // display is blanked
+            for (var i=0;i<(this.glbResolutionX*this.glbResolutionY*4);i+=4)
+            {
+                this.glbFrameBuffer[i]=0;
+                this.glbFrameBuffer[i+1]=0;
+                this.glbFrameBuffer[i+2]=0;
+                this.glbFrameBuffer[i+3]=255;
+            }
+
+            return;
+        }
+
         // background tiles
         var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 
@@ -432,13 +466,31 @@ class smsVDP
 			}
 			spriteY++;
 
+            if (spriteY >= 240) spriteY -= 256;
+
             var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
+
+            if (this.register00&0x08)
+            {
+                spriteX-=8;
+            }
+
             var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
 
             this.drawSprite(spriteIdx*32,spriteX,spriteY);
+
+            // check for 8x16 sprites
+
+            if (this.register00&0x04) // Mode4
+            {
+                if (this.register01&0x02)
+                {
+                    // sprites are 8x16, draw second half
+                    spriteIdx++;
+                    this.drawSprite(spriteIdx*32,spriteX,spriteY+8);
+                }
+            }
+
         }
-
-
     }
-
 }

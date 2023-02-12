@@ -81,8 +81,16 @@ class cpuTestRunner
                 this.theCpu.registers.pc=this.testJsonObject[testCaseNum].initial.pc;
                 this.theCpu.registers.sp=this.testJsonObject[testCaseNum].initial.sp;
 
+                const numCycles=this.testJsonObject[testCaseNum].cycles.length;
+
                 // execute one opcode
-                this.theCpu.executeOne();
+                const emuCycles=this.theCpu.executeOne();
+
+                // compare cycles
+                if (emuCycles!=numCycles)
+                {
+                    console.log("testRunner::cycles do not match emu:"+emuCycles+" test:"+numCycles);
+                }
 
                 // compare registers with test case's
                 if (this.theCpu.registers.a!=this.testJsonObject[testCaseNum].final.a)

@@ -4,16 +4,74 @@ class smsMmu
 {
     constructor(theCart,theVDP)
     {
+        this.theCartridge=theCart;
+        this.theVDP=theVDP;
+
+        // system RAM
+
         this.ram8k=new Array(0x2000);
         for (var i=0;i<0x2000;i++)
         {
             this.ram8k[i]=0;
         }
 
-        this.theCartridge=theCart;
-        this.theVDP=theVDP;
+        // SEGA mapper
+
+        this.cartridgeRam=new Uint8Array(0x4000);
+        for (var i=0;i<0x4000;i++)
+        {
+            this.cartridgeRam[i]=0;
+        }
+
+        this.romBanks = [];
+        this.mapperSlots = [];
+        
+        for (let i = 0; i < 64; i++) 
+        {
+			this.romBanks[i] = new Uint8Array(0x4000);
+		}
+
+		for (let i = 0; i < 3; i++) 
+        {
+			this.mapperSlots[i] = null;
+		}
+
+        for (let i = 0; i < this.romBanks.length; i++) 
+        {
+			var romBank = this.romBanks[i];
+
+			for (let j = 0; j < romBank.length; j++) 
+            {
+				romBank[j] = 0;
+			}
+		}        
+
+    	let bankIndex = 0;
+    	let bankByteIndex = 0;
+
+        for (let i = 0; i < theCart.cartridgeRom.length; i++) 
+        {
+            this.romBanks[bankIndex][bankByteIndex] = theCart.cartridgeRom[i];
+            bankByteIndex++;
+
+            if (bankByteIndex == 0x4000) 
+            {
+                bankIndex++;
+                bankByteIndex = 0;
+                console.log('MMU::Loading bank ' + bankIndex);
+            }
+        }
+
+        // SEGA mapper
+        for (let i = 0; i < 3; i++) 
+        {
+            this.mapperSlots[i] = i < this.romBanks.length ? this.romBanks[i] : null;
+        }
+
+        //
 
         this.portAB=0xff;
+        this.mapperSlot2IsCartridgeRam = false;
 
         console.log("MMU::Inited");
     }
@@ -82,6 +140,16 @@ class smsMmu
         this.portAB|=0x10;
     }
 
+    pressButton2()
+    {
+        this.portAB&=0xff^0x20;
+    }
+
+    depressButton2()
+    {
+        this.portAB|=0x20;
+    }
+
     pressDown()
     {
         this.portAB&=0xff^0x02;
@@ -92,15 +160,47 @@ class smsMmu
         this.portAB|=0x02;
     }
 
+    pressUp()
+    {
+        this.portAB&=0xff^0x01;
+    }
+
+    depressUp()
+    {
+        this.portAB|=0x01;
+    }
+
+    pressLeft()
+    {
+        this.portAB&=0xff^0x04;
+    }
+
+    depressLeft()
+    {
+        this.portAB|=0x04;
+    }
+
+    pressRight()
+    {
+        this.portAB&=0xff^0x08;
+    }
+
+    depressRight()
+    {
+        this.portAB|=0x08;
+    }
+
+    //
+
     writePort(port,v)
     {
-        if (port >= 0x40 && port <= 0x7f) 
+        if ((port >= 0x40) && (port <= 0x7f))
         {
             // TODO soundchip
 		} 
-        else if (port >= 0x80 && port <= 0xbf) 
+        else if ((port >= 0x80) && (port <= 0xbf))
         {
-			if (port % 2 == 0) 
+			if ((port % 2) == 0) 
             {
                 this.theVDP.writeByteToDataPort(v);
 			} 
@@ -109,7 +209,7 @@ class smsMmu
                 this.theVDP.writeByteToControlPort(v);
 			}
 		} 
-        else if (port >= 0xc0 && port <= 0xff) 
+        else if ((port >= 0xc0) && (port <= 0xff))
         {
 			// No effect.
 		}
@@ -122,9 +222,18 @@ class smsMmu
 
     readPort(port)
     {
-        if (port==0x7e)
+        if ((port >= 0x40) && (port < 0x80))
         {
-            return this.theVDP.readDataPort(port);
+            // Reads from even addresses return the V counter
+            // Reads from odd addresses return the H counter
+            if ((port & 0x01) == 0x00)
+            {
+                return this.theVDP.readDataPort(0x7e);
+            }
+            else
+            {
+                return this.theVDP.readDataPort(0x7f);
+            }
         }
         else if (port >= 0x80 && port <= 0xbf) 
         {

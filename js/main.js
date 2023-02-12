@@ -311,28 +311,22 @@ window.onload = (event) =>
             // go (with the flow)
             glbEmulatorStatus=1;
         }
-        else if (e.key=="1")
-        {
-            // 1, or start button
-            glbMMU.pressButton1();            
-        }
-        else if (e.key=="ArrowDown")
-        {
-            glbMMU.pressDown();
-        }
+        else if (e.key=="z") { glbMMU.pressButton1(); }
+        else if (e.key=="x") { glbMMU.pressButton2(); }
+        else if (e.key=="ArrowDown") { glbMMU.pressDown(); }
+        else if (e.key=="ArrowUp") { glbMMU.pressUp(); }
+        else if (e.key=="ArrowLeft") { glbMMU.pressLeft(); }
+        else if (e.key=="ArrowRight") { glbMMU.pressRight(); }
     }
 
     document.onkeyup = function(e)
 	{
-        if (e.key=="1")
-        {
-            // 1, or start button
-            glbMMU.depressButton1();            
-        }
-        else if (e.key=="ArrowDown")
-        {
-            glbMMU.depressDown();
-        }
+        if (e.key=="z") { glbMMU.depressButton1(); }
+        if (e.key=="x") { glbMMU.depressButton2(); }
+        else if (e.key=="ArrowDown") { glbMMU.depressDown(); }
+        else if (e.key=="ArrowUp") { glbMMU.depressUp(); }
+        else if (e.key=="ArrowLeft") { glbMMU.depressLeft(); }
+        else if (e.key=="ArrowRight") { glbMMU.depressRight(); }
     }
 
     var canvas = document.getElementById('debugCanvas');
