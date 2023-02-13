@@ -2,6 +2,8 @@
 /* 
 
     Zenga emulator 2k23
+    A lot of code due to:
+    https://github.com/thunderholt/jsmastersystem
 
 */
 

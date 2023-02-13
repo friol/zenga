@@ -58,7 +58,6 @@ class smsMmu
             {
                 bankIndex++;
                 bankByteIndex = 0;
-                console.log('MMU::Loading bank ' + bankIndex);
             }
         }
 
@@ -80,11 +79,39 @@ class smsMmu
     {
         addr&=0xffff;
 
-        if ((addr>=0)&&(addr<=0x7fff))
+        /* When mapping in slot 0, the first 1KB is unaffected, in order to preserve the interrupt vectors. */
+        if (addr <= 0x03ff) 
         {
-            // unbanked cartridge, for now
-            return this.theCartridge.cartridgeRom[addr];
-        }
+            return this.romBanks[0][addr];
+		} 
+        else if (addr <= 0x3fff) 
+        {
+			// ROM mapper slot 0.
+			let mapperSlot = this.mapperSlots[0];
+			const byte = mapperSlot != null ? mapperSlot[addr] : 0;
+            return byte;
+		} 
+        else if (addr <= 0x7fff) 
+        {
+			// ROM mapper slot 1.
+			let mapperSlot = this.mapperSlots[1];
+			const byte = mapperSlot != null ? mapperSlot[addr - 0x4000] : 0;
+            return byte;
+		} 
+        else if (addr <= 0xbfff) 
+        {
+			// ROM/RAM mapper slot 2.
+			if (this.mapperSlot2IsCartridgeRam) 
+            {
+				return this.cartridgeRam[addr - 0x8000];
+			} 
+            else 
+            {
+				let mapperSlot = this.mapperSlots[2];
+				const byte = mapperSlot != null ? mapperSlot[addr - 0x8000] : 0;
+                return byte;
+			}
+		}        
         else if ((addr>=0xc000)&&(addr<=0xdfff)) /* The work RAM is only 8K, and is mirrored at $E000-$FFFF */
         {
             return this.ram8k[addr-0xc000];
@@ -102,13 +129,44 @@ class smsMmu
 
     writeAddr(addr,value)
     {
-        if ((addr>=0xc000)&&(addr<=0xdfff))
+        if ((addr>=0x8000)&&(addr<=0xbfff))
+        {
+			if (this.mapperSlot2IsCartridgeRam) 
+            {
+				// ROM/RAM mapper slot 2.
+				this.cartridgeRam[addr - 0x8000] = value;
+			} 
+            else 
+            {
+				// We can't write to this!
+				console.log("MMU::can't write to address: " + addr.toString(16));
+			}
+		}        
+        else if ((addr>=0xc000)&&(addr<=0xdfff))
         {
             this.ram8k[addr-0xc000]=value;
         }
         else if ((addr>=0xe000)&&(addr<=0xffff))
         {
             this.ram8k[addr-0xe000]=value;
+
+            // SEGA mapper control addresses
+            if (addr == 0xfffc) 
+            {
+                this.setMapperControl(value);
+            } 
+            else if (addr == 0xfffd) 
+            {
+                this.setMapperSlot(0, value);
+            } 
+            else if (addr == 0xfffe) 
+            {
+                this.setMapperSlot(1, value);
+            } 
+            else if (addr == 0xffff) 
+            {
+                this.setMapperSlot(2, value);
+            }            
         }
     }
 
@@ -127,6 +185,42 @@ class smsMmu
 		this.writeAddr(address, byte1);
 		this.writeAddr(address + 1, byte2);
 	}    
+
+    //
+
+    setMapperControl(byte) 
+    {
+		// Check bit 0-1: Bank shift.
+		let bankShift = byte & 0x03;
+		if (bankShift != 0) 
+        {
+			throw 'Unimplemented ROM bank shift.';
+		}
+
+		// Check bit 2: RAM bank select.
+		if ((byte & 0x04) > 0) 
+        {
+			throw 'Unimplemented RAM bank select.';
+		}
+
+		// Check bit 3: System RAM override.
+		if ((byte & 0x10) > 0) 
+        {
+			throw 'Unimplemented system RAM override.';
+		}
+
+		// Check bit 4: Cartridge RAM enable slot 2).
+		this.mapperSlot2IsCartridgeRam = (byte & 0x08) > 0;
+	}
+
+	setMapperSlot(slotIndex, byte) 
+    {
+		let bankIndex = byte & 0x3f; // Mask off to just first 6 bits.
+
+		this.mapperSlots[slotIndex] = this.romBanks[bankIndex];
+
+		//this.log('Mapper slot ' + slotIndex + ' set to ROM bank ' + byte + '.');
+	}
 
     // I/O ports&input
 

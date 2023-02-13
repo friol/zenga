@@ -258,8 +258,15 @@ class smsVDP
         }        
     }
 
-    drawTile(ctx,addr,x,y,pal)
+    drawTile(ctx,addr,x,y,pal,fliph,flipv)
     {
+        var addrInc=4;
+        if (flipv) 
+        {
+            addr+=7*4;
+            addrInc=-4;
+        }
+
         for (var yt=0;yt<8;yt++)
         {
             for (var xt=0;xt<8;xt++)
@@ -269,10 +276,20 @@ class smsVDP
                 var byte2=this.vRam[addr+2]
                 var byte3=this.vRam[addr+3]
 
-                byte0>>=(7-xt); byte0&=1;
-                byte1>>=(7-xt); byte1&=1;
-                byte2>>=(7-xt); byte2&=1;
-                byte3>>=(7-xt); byte3&=1;
+                if (fliph)
+                {
+                    byte0>>=xt; byte0&=1;
+                    byte1>>=xt; byte1&=1;
+                    byte2>>=xt; byte2&=1;
+                    byte3>>=xt; byte3&=1;
+                }
+                else
+                {
+                    byte0>>=(7-xt); byte0&=1;
+                    byte1>>=(7-xt); byte1&=1;
+                    byte2>>=(7-xt); byte2&=1;
+                    byte3>>=(7-xt); byte3&=1;
+                }
 
                 var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
                 var curbyte=this.colorRam[cramIdx+(pal*16)];
@@ -288,7 +305,7 @@ class smsVDP
                 this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+3]=255;
             }
 
-            addr+=4;
+            addr+=addrInc;
         }        
     }
 
@@ -447,9 +464,12 @@ class smsVDP
                 var word=this.vRam[nameTableBaseAddress];
                 word|=this.vRam[nameTableBaseAddress+1]<<8;
 
+                const flipH=(word>>9)&0x01;
+                const flipV=(word>>10)&0x01;
                 const pal=(word>>11)&0x01;
+                const priFlag=(word>>12)&0x01;
 
-                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8,pal);   
+                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8,pal,flipH,flipV);   
                 nameTableBaseAddress+=2;             
             }
         }
