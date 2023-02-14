@@ -280,7 +280,22 @@ function runCPUTests(t)
             }
         }
     }
-    
+}
+
+function hideDebugStuff()
+{
+    document.getElementById("debugCanvas").style.display="none";
+    document.getElementById("debugButtons").style.display="none";
+    document.getElementById("smsdisplay").style.width="768px";
+    document.getElementById("smsdisplay").style.height="576px";
+}
+
+function showDebugStuff()
+{
+    document.getElementById("debugCanvas").style.display="block";
+    document.getElementById("debugButtons").style.display="block";
+    document.getElementById("smsdisplay").style.width="256px";
+    document.getElementById("smsdisplay").style.height="192px";
 }
 
 window.onload = (event) => 
@@ -289,6 +304,7 @@ window.onload = (event) =>
 	{
         if (e.key=="s")
         {
+            showDebugStuff();
             glbEmulatorStatus=0;
             var cyc=glbCPU.executeOne();
             glbVDP.update(glbCPU,cyc);
@@ -311,6 +327,7 @@ window.onload = (event) =>
         else if (e.key=="g")
         {
             // go (with the flow)
+            hideDebugStuff();
             glbEmulatorStatus=1;
         }
         else if (e.key=="z") { glbMMU.pressButton1(); }

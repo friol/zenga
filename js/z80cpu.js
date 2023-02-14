@@ -2394,6 +2394,13 @@ class z80cpu
             self.incPc(1);
         }, "LD (HL),E",7, 0, false];
 
+        this.unprefixedOpcodes[0x74]=[function()
+        {
+            var addr=self.registers.l|(self.registers.h<<8);
+            self.theMMU.writeAddr(addr,self.registers.h);
+            self.incPc(1);
+        }, "LD (HL),H",7, 0, false];
+    
         this.unprefixedOpcodes[0x75]=[function()
         {
             var addr=self.registers.l|(self.registers.h<<8);
@@ -2582,11 +2589,23 @@ class z80cpu
             self.incPc(1);
         }, "SBC A,D", 4, 0, false];
 
+        this.unprefixedOpcodes[0x9b]=[function()
+        {
+            self.registers.a = self.sbc_8bit(self.registers.a, self.registers.e);
+            self.incPc(1);
+        }, "SBC A,E", 4, 0, false];
+    
         this.unprefixedOpcodes[0x9c]=[function()
         {
             self.registers.a = self.sbc_8bit(self.registers.a, self.registers.h);
             self.incPc(1);
         }, "SBC A,H", 4, 0, false];
+
+        this.unprefixedOpcodes[0x9d]=[function()
+        {
+            self.registers.a = self.sbc_8bit(self.registers.a, self.registers.l);
+            self.incPc(1);
+        }, "SBC A,L", 4, 0, false];
             
         this.unprefixedOpcodes[0x9e]=[function()
         {
@@ -3303,6 +3322,13 @@ class z80cpu
     {
         let self = this;
 
+        this.prefixedOpcodes[0x40]=[function()
+        {
+            // TODO flags
+            self.registers.b=self.theMMU.readPort(self.registers.c);
+            self.incPc(2);
+        }, "IN B,(C)", 12, 0, false];
+    
         this.prefixedOpcodes[0x41]=[function()
         {
             self.theMMU.writePort(self.registers.c,self.registers.b);
@@ -3335,6 +3361,13 @@ class z80cpu
             self.incPc(2);
         }, "NEG", 8, 0, false];
 
+        this.prefixedOpcodes[0x47]=[function()
+        {
+            // TODO check flags
+            self.registers.i=self.registers.a;
+            self.incPc(2);
+        }, "LD I,A", 9, 0, false];
+    
         this.prefixedOpcodes[0x4a]=[function()
         { 
             var hl=self.registers.l|(self.registers.h<<8);
@@ -3398,7 +3431,7 @@ class z80cpu
             self.registers.f&=~z80flags.FLAG_N;
             self.registers.f&=~z80flags.FLAG_H;
             self.incPc(2);
-        }, "LD A,I", 9, 2, false];
+        }, "LD A,I", 9, 0, false];
     
         this.prefixedOpcodes[0x59]=[function()
         {
@@ -3542,12 +3575,32 @@ class z80cpu
             self.incPc(2); 
         }, "RLC C", 8, 0, false];
 
+        this.prefixcbOpcodes[0x03]=[function() 
+        {
+            self.registers.e = self.rlc_8bit(self.registers.e);
+            self.incPc(2); 
+        }, "RLC E", 8, 0, false];
+    
         this.prefixcbOpcodes[0x04]=[function() 
         {
             self.registers.h = self.rlc_8bit(self.registers.h);
             self.incPc(2); 
         }, "RLC H", 8, 0, false];
 
+        this.prefixcbOpcodes[0x06]=[function()
+        { 
+            const address=self.registers.l|(self.registers.h<<8);
+            const res=self.rlc_8bit(self.theMMU.readAddr(address));
+            self.theMMU.writeAddr(address,res);
+            self.incPc(2); 
+        }, "RLC (HL)", 15, 0, false];
+    
+        this.prefixcbOpcodes[0x07]=[function() 
+        {
+            self.registers.a = self.rlc_8bit(self.registers.a);
+            self.incPc(2); 
+        }, "RLC A", 8, 0, false];
+    
         this.prefixcbOpcodes[0x08]=[function()
         { 
             self.registers.b=self.rrc_8bit(self.registers.b);
@@ -3714,6 +3767,12 @@ class z80cpu
             self.registers.d = self.sra_8bit(self.registers.d); 
             self.incPc(2); 
         }, "SRA D", 8, 0, false];
+
+        this.prefixcbOpcodes[0x2b]=[function() 
+        {
+            self.registers.e = self.sra_8bit(self.registers.e); 
+            self.incPc(2); 
+        }, "SRA E", 8, 0, false];
             
         this.prefixcbOpcodes[0x2c]=[function() 
         {
@@ -3945,6 +4004,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 0,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0x82]=[function()
+        {
+            self.registers.d&=~0x01;
+            self.incPc(2); 
+        }, "RES 0,D", 8, 0, false];
+    
         this.prefixcbOpcodes[0x83]=[function()
         {
             self.registers.e&=~0x01;
@@ -3984,6 +4049,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 1,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0x8a]=[function()
+        {
+            self.registers.d&=~0x02;
+            self.incPc(2); 
+        }, "RES 1,D", 8, 0, false];
+    
         this.prefixcbOpcodes[0x8b]=[function()
         {
             self.registers.e&=~0x02;
@@ -4070,13 +4141,25 @@ class z80cpu
             self.registers.a&=~0x08;
             self.incPc(2); 
         }, "RES 3,A", 8, 0, false];
-    
+
+        this.prefixcbOpcodes[0xa0]=[function()
+        {
+            self.registers.b&=~0x10;
+            self.incPc(2); 
+        }, "RES 4,B", 8, 0, false];
+            
         this.prefixcbOpcodes[0xa1]=[function()
         {
             self.registers.c&=~0x10;
             self.incPc(2); 
         }, "RES 4,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0xa4]=[function()
+        {
+            self.registers.h&=~0x10;
+            self.incPc(2); 
+        }, "RES 4,H", 8, 0, false];
+    
         this.prefixcbOpcodes[0xa6]=[function()
         {
             const hl=self.registers.l|(self.registers.h<<8);
@@ -4098,6 +4181,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 5,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0xad]=[function()
+        {
+            self.registers.l&=~0x20;
+            self.incPc(2); 
+        }, "RES 5,L", 8, 0, false];
+    
         this.prefixcbOpcodes[0xae]=[function()
         {
             const hl=self.registers.l|(self.registers.h<<8);
@@ -4247,6 +4336,12 @@ class z80cpu
             self.registers.e|=0x02;
             self.incPc(2); 
         }, "SET 1,E", 8, 0, false];
+
+        this.prefixcbOpcodes[0xcc]=[function()
+        {
+            self.registers.h|=0x02;
+            self.incPc(2); 
+        }, "SET 1,H", 8, 0, false];
             
         this.prefixcbOpcodes[0xce]=[function()
         {
@@ -4307,7 +4402,13 @@ class z80cpu
             self.registers.e|=0x08;
             self.incPc(2); 
         }, "SET 3,E", 8, 0, false];
-    
+
+        this.prefixcbOpcodes[0xdc]=[function()
+        {
+            self.registers.h|=0x08;
+            self.incPc(2); 
+        }, "SET 3,H", 8, 0, false];
+            
         this.prefixcbOpcodes[0xde]=[function()
         {
             const hl=self.registers.l|(self.registers.h<<8);

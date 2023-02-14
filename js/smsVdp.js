@@ -10,13 +10,6 @@ class smsVDP
 {
     constructor()
     {
-        /* 32 bytes of color RAM (CRAM) - write only */
-        this.colorRam=new Array();
-        for (var c=0;c<0x20;c++)
-        {
-            this.colorRam.push(0);            
-        }
-
         /* video RAM */
         this.vRam=new Array();
         for (var b=0;b<0x4000;b++)
@@ -24,8 +17,15 @@ class smsVDP
             this.vRam.push(0);            
         }
 
-        //this.clockCyclesPerScanline=3420;
-        this.clockCyclesPerScanline=311;
+        /* 32 bytes of color RAM (CRAM) - write only */
+        this.colorRam=new Array();
+        for (var c=0;c<0x20;c++)
+        {
+            this.colorRam.push(0);            
+        }
+
+        this.clockCyclesPerScanline=226;
+        this.currentScanlineIndex=0; // 0-262
 
         this.controlWordFlag=false;
         this.controlWord=0;
@@ -40,9 +40,13 @@ class smsVDP
 
         this.vcounter=0;
         this.hcounter=0;
+
         this.register00=0;
         this.register01=0;
         this.register06=0;
+        this.register08=0;
+        this.register09=0;
+        this.register0a=0; // line counter
 
         this.glbResolutionX=256;
         this.glbResolutionY=192;
@@ -87,6 +91,21 @@ class smsVDP
             this.spritePatternGeneratorBaseAddress=(dataByte & 0x04) << 11;
             this.register06=dataByte;
         }
+        else if (registerIndex==8)
+        {
+            /* Register $08 - Background X Scroll */
+            this.register08=dataByte;
+        }
+        else if (registerIndex==9)
+        {
+            /* Register $09 - Background Y Scroll */
+            this.register09=dataByte;
+        }
+        else if (registerIndex==0x0a)
+        {
+            /* Register $0A - Line counter */
+            this.register0a=dataByte;
+        }
     }
 
 /*
@@ -106,11 +125,12 @@ class smsVDP
                         below. Writes to the data port go to VRAM.
         3               Writes to the data port go to CRAM.    
 */
+
     writeByteToControlPort(b)
     {
         if (!this.controlWordFlag) 
         {
-			this.controlWord=b|(this.controlWord&0xff00);
+			this.controlWord=b;
 			this.controlWordFlag=true;
             this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
 		} 
@@ -139,7 +159,7 @@ class smsVDP
             }
             else if (controlCode==2)
             {
-                this.dataPortWriteMode=vdpDataPortWriteMode.toVRAM;
+                //this.dataPortWriteMode=vdpDataPortWriteMode.toVRAM;
 
                 let registerIndex = (this.controlWord & 0x0f00) >> 8;
 				let dataByte = this.controlWord & 0x00ff;
@@ -206,6 +226,7 @@ class smsVDP
         MSB                         LSB
         INT OVR COL --- --- --- --- ---
     */    
+
     readByteFromControlPort()
     {
 		this.controlWordFlag = false;
@@ -297,12 +318,16 @@ class smsVDP
                 var green=((curbyte>>2)&0x03)*64;
                 var blue=((curbyte>>4)&0x03)*64;
 
-                //ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
-                //ctx.fillRect(x+xt,y+yt,1,1);
-                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+0]=red;
-                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+1]=green;
-                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+2]=blue;
-                this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+3]=255;
+                var xtile=x+xt;
+                var ytile=y+yt;
+
+                if ((xtile>=0)&&(xtile<256)&&(ytile>=0)&&(ytile<192))
+                {
+                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+0]=red;
+                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+1]=green;
+                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+2]=blue;
+                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+3]=255;
+                }
             }
 
             addr+=addrInc;
@@ -400,22 +425,39 @@ class smsVDP
     update(theCPU,cycles)
     {
         // TODO check this
-        // update counters like V and H
         this.hcounter+=cycles;
         if (this.hcounter>=this.clockCyclesPerScanline)
         {
             this.hcounter%=this.clockCyclesPerScanline;
-            this.vcounter+=1;
 
-            if (this.vcounter>192)
+            if (this.currentScanlineIndex == 219) 
             {
-                this.vcounter=0;
+                this.vcounter = 213;
+            } 
+            else 
+            {
+                this.vcounter++;
+                this.vcounter&=0xff;
+            }
+
+            if (this.currentScanlineIndex==192)
+            {
+                this.statusFlags|=0x80;
+            }
+
+            if (this.currentScanlineIndex==193)
+            {
                 if (this.register01&0x20)
                 {
                     theCPU.raiseMaskableInterrupt();
-                    this.statusFlags|=0x80;
                 }
             }
+
+            this.currentScanlineIndex++;
+            if (this.currentScanlineIndex == 262) 
+            {
+                this.currentScanlineIndex = 0;
+            }            
         }
     }
 
@@ -457,20 +499,35 @@ class smsVDP
         // background tiles
         var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 
-        for (var y=0;y<24;y++)
+        var screenMap=Array();
+        for (var y=0;y<28;y++)
         {
             for (var x=0;x<32;x++)
             {
                 var word=this.vRam[nameTableBaseAddress];
                 word|=this.vRam[nameTableBaseAddress+1]<<8;
+                screenMap.push(word);
+                nameTableBaseAddress+=2;             
+            }
+        }
+
+        var initialTile=32-((this.register08)>>3);
+        const finescrollx=this.register08&0x7;
+        var initialRow=Math.floor((this.register09)/8);
+        const finescrolly=-(this.register09%8);
+
+        for (var y=0;y<24;y++)
+        {
+            for (var x=0;x<32;x++)
+            {
+                const word=screenMap[((x+initialTile)%32)+(((y+initialRow)%28)*32)];
 
                 const flipH=(word>>9)&0x01;
                 const flipV=(word>>10)&0x01;
                 const pal=(word>>11)&0x01;
                 const priFlag=(word>>12)&0x01;
 
-                this.drawTile(ctx,(word&0x1ff)*32,x*8,y*8,pal,flipH,flipV);   
-                nameTableBaseAddress+=2;             
+                this.drawTile(ctx,(word&0x1ff)*32,(x*8)+finescrollx,(y*8)+finescrolly,pal,flipH,flipV);   
             }
         }
 
@@ -486,7 +543,7 @@ class smsVDP
 			}
 			spriteY++;
 
-            if (spriteY >= 240) spriteY -= 256;
+            //if (spriteY >= 240) spriteY -= 256;
 
             var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
 

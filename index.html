@@ -7,7 +7,7 @@
         <meta name="keywords" content="Sega Master System emulator, coding, emulation, SEGA, games, 1987">
     
         <!--<link rel="icon" type="image/png" href="img/favicon.ico"/>-->
-        <title>Zenga - version 0.3a</title>
+        <title>Zenga - version 0.4a</title>
 
         <link rel="stylesheet" href="css/main.css"/>
         
@@ -21,27 +21,25 @@
     </head>
 
     <body>
-        <div id="titleDiv"><b>Zenga</b> emulator v0.3a - <span id="fpsSpan"></span></div>
-        <div id="debuggerDiv">
-        </div>
+        <div id="titleDiv"><img src="img/zenga.png" /><b>Zenga</b> emulator v0.4a - <span id="fpsSpan"></span></div>
         <canvas width=800 height=400 id="debugCanvas"></canvas>
+        <!--<canvas width=256 height=192 id="smsdisplay" style="width:512px;height:384px;"></canvas>-->
         <canvas width=256 height=192 id="smsdisplay"></canvas>
         <br/>
         <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
         <br/><br/>
-        <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
-        <button onclick="runCPUTests(0xcb);">Test 0xCB opcodes!</button>
-        <button onclick="runCPUTests(0xdd);">Test 0xDD opcodes!</button>
-        <button onclick="runCPUTests(0xddcb);">Test 0xDDCB opcodes!</button>
-        <button onclick="runCPUTests(0xed);">Test 0xED opcodes!</button>
-        <button onclick="runCPUTests(0xfd);">Test 0xFD opcodes!</button>
-        <button onclick="runCPUTests(0xfdcb);">Test 0xFDCB opcodes!</button>
-        <br/><br/>
-        <input type="text" id="bpaddress" name="bpaddress" value="453">
-        <button onclick="gotoAddress();">Goto address</button>
-        <br/>
-        <br/>
-        <button onclick="">RUN!</button>
+        <div id="debugButtons">
+            <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
+            <button onclick="runCPUTests(0xcb);">Test 0xCB opcodes!</button>
+            <button onclick="runCPUTests(0xdd);">Test 0xDD opcodes!</button>
+            <button onclick="runCPUTests(0xddcb);">Test 0xDDCB opcodes!</button>
+            <button onclick="runCPUTests(0xed);">Test 0xED opcodes!</button>
+            <button onclick="runCPUTests(0xfd);">Test 0xFD opcodes!</button>
+            <button onclick="runCPUTests(0xfdcb);">Test 0xFDCB opcodes!</button>
+            <br/><br/>
+            <input type="text" id="bpaddress" name="bpaddress" value="453">
+            <button onclick="gotoAddress();">Goto address</button>
+        </div>
 
     </body>
 </html>
