@@ -26,6 +26,7 @@ class smsVDP
 
         this.clockCyclesPerScanline=226;
         this.currentScanlineIndex=0; // 0-262
+        this.lineCounter=0;
 
         this.controlWordFlag=false;
         this.controlWord=0;
@@ -428,8 +429,10 @@ class smsVDP
         this.hcounter+=cycles;
         if (this.hcounter>=this.clockCyclesPerScanline)
         {
+            var raiseInterrupt=false;
             this.hcounter%=this.clockCyclesPerScanline;
 
+            // vcounter
             if (this.currentScanlineIndex == 219) 
             {
                 this.vcounter = 213;
@@ -440,6 +443,28 @@ class smsVDP
                 this.vcounter&=0xff;
             }
 
+            // linecounter
+            if (this.currentScanlineIndex <= 192) 
+            {
+                this.lineCounter--;
+                this.lineCounter &= 0xff;
+    
+                // Check if the counter has underflowed.
+                if (this.lineCounter == 0xff) 
+                {
+                    this.lineCounter = this.register0a;
+    
+                    if (this.register00&0x10) 
+                    {
+                        raiseInterrupt = true;
+                    }
+                }
+            } 
+            else 
+            {
+                this.lineCounter = this.register0a;
+            }            
+
             if (this.currentScanlineIndex==192)
             {
                 this.statusFlags|=0x80;
@@ -449,8 +474,13 @@ class smsVDP
             {
                 if (this.register01&0x20)
                 {
-                    theCPU.raiseMaskableInterrupt();
+                    raiseInterrupt=true;
                 }
+            }
+
+            if (raiseInterrupt)
+            {
+                theCPU.raiseMaskableInterrupt();
             }
 
             this.currentScanlineIndex++;
