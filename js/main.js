@@ -206,7 +206,7 @@ function runCPUTests(t)
     if (t==0)
     {
         for (var o=0;o<refCPU.unprefixedOpcodes.length;o++)
-        //o=0xdb;
+        //var o=0x17;
         {
             if ((refCPU.unprefixedOpcodes[o]!=undefined)&&(o!=0xdb))
             {
@@ -217,7 +217,7 @@ function runCPUTests(t)
     else if (t==0xed)
     {
         for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-        //var o=0x5a;
+        //var o=0xa2;
         {
             if ((refCPU.prefixedOpcodes[o]!=undefined)&&(o!=0xb3)&&(o!=0x78))
             {

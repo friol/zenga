@@ -458,7 +458,7 @@ class z80cpu
 		return newValue;	
 	}
 
-    rl_8bit(v) 
+    rl_8bit(v,isA=false) 
     {
 		let bit7Set = (v & 0x80) > 0;
 
@@ -469,21 +469,26 @@ class z80cpu
 		}
 
 		// Reset the flags.
-		this.registers.f = 0x00;
+        if (isA)
+        {
+            this.registers.f&=z80flags.FLAG_PV|z80flags.FLAG_S|z80flags.FLAG_Z;
+        }
+        else
+        {
+            this.registers.f = 0x00;
+        }
 
 		// C: Set if bit 7 of the input is set.
 		if (bit7Set) 
         {
 			this.registers.f |= z80flags.FLAG_C;
 		}
+        else
+        {
+			this.registers.f &= ~z80flags.FLAG_C;
+        }
 
 		// N: Reset.
-
-		// P/V: Set if new value has even number of set bits.
-		if (this.parityLookUp[newValue]) 
-        {
-			this.registers.f |= z80flags.FLAG_PV;
-		}
 
 		// F3: Set if bit 3 of the result is set.
 		if (newValue & 0x08) 
@@ -499,17 +504,26 @@ class z80cpu
 			this.registers.f |= z80flags.FLAG_F5;
 		}
 
-		// Z: Set if the value is zero.
-		if (newValue == 0) 
+        if (!isA)
         {
-			this.registers.f |= z80flags.FLAG_Z;
-		}
+            // P/V: Set if new value has even number of set bits.
+            if (this.parityLookUp[newValue]) 
+            {
+                this.registers.f |= z80flags.FLAG_PV;
+            }
 
-		// S: Set if the twos-compliment value is negative.
-		if (newValue & 0x80) 
-        {
-			this.registers.f |= z80flags.FLAG_S;
-		}
+            // Z: Set if the value is zero.
+            if (newValue == 0) 
+            {
+                this.registers.f |= z80flags.FLAG_Z;
+            }
+
+            // S: Set if the twos-compliment value is negative.
+            if (newValue & 0x80) 
+            {
+                this.registers.f |= z80flags.FLAG_S;
+            }
+        }
 
 		return newValue;	
 	}
@@ -650,7 +664,7 @@ class z80cpu
 
 		return newValue;	
 	}
-
+/*
     rl_8bit(v) 
     {
 		let bit7Set = (v & 0x80) > 0;
@@ -703,8 +717,8 @@ class z80cpu
 
 		return newValue;	
 	}
-
-    rrc_8bit(v) 
+*/
+    rrc_8bit(v,isA=false) 
     {
 		let bit0Set = (v & 0x01) > 0;
 
@@ -715,21 +729,35 @@ class z80cpu
 		}
 
 		// Reset the flags.
-		this.registers.f = 0x00;
+        if (isA)
+        {
+            this.registers.f&=z80flags.FLAG_PV|z80flags.FLAG_S|z80flags.FLAG_Z;
+        }
+        else
+        {
+            this.registers.f = 0x00;
+        }
 
-		// C: Set if bit 7 of the input is set.
+		// C: Set if bit 0 of the input is set.
 		if (bit0Set) 
         {
 			this.registers.f |= z80flags.FLAG_C;
 		}
+        else
+        {
+			this.registers.f &= ~z80flags.FLAG_C;
+        }
 
 		// N: Reset.
 
-		// P/V: Set if new value has even number of set bits.
-		if (this.parityLookUp[newValue]) 
+        if (!isA)
         {
-			this.registers.f |= z80flags.FLAG_PV;
-		}
+            // P/V: Set if new value has even number of set bits.
+            if (this.parityLookUp[newValue]) 
+            {
+                this.registers.f |= z80flags.FLAG_PV;
+            }
+        }
 
 		// F3: Set if bit 3 of the result is set.
 		if (newValue & 0x08) {
@@ -743,16 +771,19 @@ class z80cpu
 			this.registers.f |= z80flags.FLAG_F5;
 		}
 
-		// Z: Set if the value is zero.
-		if (newValue == 0) {
-			this.registers.f |= z80flags.FLAG_Z;
-		}
-
-		// S: Set if the twos-compliment value is negative.
-		if (newValue & 0x80) 
+        if (!isA)
         {
-			this.registers.f |= z80flags.FLAG_S;
-		}
+            // Z: Set if the value is zero.
+            if (newValue == 0) {
+                this.registers.f |= z80flags.FLAG_Z;
+            }
+
+            // S: Set if the twos-compliment value is negative.
+            if (newValue & 0x80) 
+            {
+                this.registers.f |= z80flags.FLAG_S;
+            }
+        }
 
 		return newValue;	
 	}
@@ -1623,6 +1654,29 @@ class z80cpu
 
 		this.registers.b = this.dec_8bit(this.registers.b);
 
+        if ((byte & 0x80) != 0) this.registers.f|=z80flags.FLAG_N;
+        else this.registers.f&=~z80flags.FLAG_N;
+
+        if ((byte + ((this.registers.c + 1) & 0xFF)) > 0xFF)
+        {
+            this.registers.f|=z80flags.FLAG_C;
+            this.registers.f|=z80flags.FLAG_H;
+        }
+        else
+        {
+            this.registers.f&=~z80flags.FLAG_C;
+            this.registers.f&=~z80flags.FLAG_H;
+        }
+
+        if ((((byte + ((this.registers.c + 1) & 0xFF)) & 0x07) ^ this.registers.b)!=0)
+        {
+            this.registers.f|=z80flags.FLAG_PV;
+        }
+        else 
+        {
+            this.registers.f&=~z80flags.FLAG_PV;        
+        }
+
         this.incPc(2);
 	}
 
@@ -1944,7 +1998,7 @@ class z80cpu
         this.unprefixedOpcodes[0x0e]=[function() { var m1=self.theMMU.readAddr(self.registers.pc+1); self.registers.c=m1; self.incPc(2); }, "LD C,%d", 7, 1, false];
         this.unprefixedOpcodes[0x0f]=[function()
         { 
-            self.registers.a = self.rrc_8bit(self.registers.a);            
+            self.registers.a = self.rrc_8bit(self.registers.a,true);            
             self.incPc(1); 
         }, "RRCA", 4, 0, false];
 
@@ -1992,7 +2046,7 @@ class z80cpu
         
         this.unprefixedOpcodes[0x17]=[function() 
         { 
-            self.registers.a = self.rl_8bit(self.registers.a);
+            self.registers.a = self.rl_8bit(self.registers.a,true);
             self.incPc(1); 
         }, "RLA", 4, 0, false];
 
@@ -3354,8 +3408,15 @@ class z80cpu
 
         this.prefixedOpcodes[0x40]=[function()
         {
-            // TODO flags
             self.registers.b=self.theMMU.readPort(self.registers.c);
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
+            if ((self.registers.b & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+            if (self.parityLookUp[self.registers.b]) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
             self.incPc(2);
         }, "IN B,(C)", 12, 0, false];
     
@@ -3458,8 +3519,21 @@ class z80cpu
         {
             // TODO check flags
             self.registers.a=self.registers.i;
+            
             self.registers.f&=~z80flags.FLAG_N;
             self.registers.f&=~z80flags.FLAG_H;
+
+            if ((self.registers.b & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+
+/*
+            ToggleXYFlagsFromResult(value);
+
+            if (m_bIFF2) ToggleFlag(FLAG_PARITY);
+            else ClearFlag(FLAG_PARITY);
+*/
             self.incPc(2);
         }, "LD A,I", 9, 0, false];
     
@@ -3494,11 +3568,17 @@ class z80cpu
 
         this.prefixedOpcodes[0x5f]=[function()
         {
-            // TODO flags
+            // TODO better flags
             self.registers.r+=2;
             self.registers.a=self.registers.r;
             self.registers.f&=~z80flags.FLAG_N;
             self.registers.f&=~z80flags.FLAG_H;
+
+            if ((self.registers.b & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+
             self.incPc(2);
         }, "LD A,R", 9, 2, false];
             
@@ -4834,6 +4914,12 @@ class z80cpu
             self.incPc(2); 
         }, "ADD IY,SP", 15, 0, false];
 
+        this.prefixfdOpcodes[0x44]=[function() 
+        {
+            self.registers.b=self.registers.iyh;
+            self.incPc(2); 
+        }, "LD B,IYH", 8, 0, true];
+    
         this.prefixfdOpcodes[0x46]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
@@ -4913,6 +4999,12 @@ class z80cpu
 
             self.incPc(3); 
         }, "LD E,(IY+%d)", 19, 1, false];
+
+        this.prefixfdOpcodes[0x60]=[function() 
+        {
+            self.registers.iyh=self.registers.b;
+            self.incPc(2); 
+        }, "LD IYH,B", 8, 0, true];
             
         this.prefixfdOpcodes[0x66]=[function() 
         {
@@ -5494,6 +5586,12 @@ class z80cpu
 
             self.incPc(3); 
         }, "LD C,(IX+%d)", 19, 1, false];
+
+        this.prefixddOpcodes[0x54]=[function() 
+        {
+            self.registers.d=self.registers.ixh;
+            self.incPc(2); 
+        }, "LD D,IXH", 8, 0, true];
             
         this.prefixddOpcodes[0x56]=[function() 
         {

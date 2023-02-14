@@ -10,6 +10,8 @@ class testMMU
             this.ram64k[i]=0;
         }
 
+        this.portValues=new Array();
+
         console.log("testMMU::inited");
     }
 
@@ -72,12 +74,18 @@ class testMMU
         }
     }    
 
+    preparePort(v)
+    {
+        this.portValues=[];
+        this.portValues.push(v);
+    }
+
     writePort(p,v)
     {
     }
 
     readPort(p)
     {
-        return 0;
+        return this.portValues[0];
     }
 }

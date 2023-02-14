@@ -47,6 +47,7 @@ class smsVDP
         this.register06=0;
         this.register08=0;
         this.register09=0;
+        this.register07=0;
         this.register0a=0; // line counter
 
         this.glbResolutionX=256;
@@ -91,6 +92,11 @@ class smsVDP
             /*  Register $06 - Sprite pattern generator Base Address */
             this.spritePatternGeneratorBaseAddress=(dataByte & 0x04) << 11;
             this.register06=dataByte;
+        }
+        else if (registerIndex==7)
+        {
+            /* Register $07 - Overscan/Backdrop Color */
+            this.register07=dataByte;
         }
         else if (registerIndex==8)
         {
@@ -354,7 +360,7 @@ class smsVDP
                 byte3>>=(7-xt); byte3&=1;
 
                 var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
-                var curbyte=this.colorRam[cramIdx+(16)];
+                var curbyte=this.colorRam[cramIdx+16];
 
                 if (cramIdx!=0)
                 {
@@ -546,7 +552,7 @@ class smsVDP
         var initialRow=Math.floor((this.register09)/8);
         const finescrolly=-(this.register09%8);
 
-        for (var y=0;y<24;y++)
+        for (var y=0;y<25;y++)
         {
             for (var x=0;x<32;x++)
             {
@@ -599,5 +605,28 @@ class smsVDP
             }
 
         }
+
+        // column 0:  D5 - 1= Mask column 0 with overscan color from register #7
+
+        if (this.register00&0x20)
+        {
+            var oscol=this.colorRam[(this.register07&0x0f)+16];
+            var red=(oscol&0x03)*64;
+            var green=((oscol>>2)&0x03)*64;
+            var blue=((oscol>>4)&0x03)*64;
+
+            for (var y=0;y<this.glbResolutionY;y++)
+            {
+                for (var x=0;x<8;x++)
+                {
+                    const pos=(x+(y*this.glbResolutionX))*4;
+                    this.glbFrameBuffer[pos]=red;
+                    this.glbFrameBuffer[pos+1]=green;
+                    this.glbFrameBuffer[pos+2]=blue;
+                    this.glbFrameBuffer[pos+3]=255;
+                }
+            }
+        }
+
     }
 }

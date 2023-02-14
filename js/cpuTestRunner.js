@@ -53,6 +53,12 @@ class cpuTestRunner
                     this.theMMU.writeAddr(this.testJsonObject[testCaseNum].initial.ram[v][0],this.testJsonObject[testCaseNum].initial.ram[v][1]);
                 }
 
+                // prepare ports, if this is a ports instruction
+                if ("ports" in this.testJsonObject[testCaseNum])
+                {
+                    this.theMMU.preparePort(this.testJsonObject[testCaseNum].ports[0][1]);
+                }
+
                 // set CPU registers to test case's
                 this.theCpu.registers.a=this.testJsonObject[testCaseNum].initial.a;
                 this.theCpu.shadowRegisters.a=this.testJsonObject[testCaseNum].initial.af_>>8;
@@ -124,8 +130,7 @@ class cpuTestRunner
                 }
                 if ((this.theCpu.registers.f&0xd7)!=(this.testJsonObject[testCaseNum].final.f&0xd7))
                 {
-                    console.log("testRunner::f is different from test case - initial f: ["+
-                    this.toBinary(this.testJsonObject[testCaseNum].initial.f)+" emulated f: ["+
+                    console.log("testRunner::f is different from test case - emulated f: ["+
                     this.toBinary(this.theCpu.registers.f)+"] final f ["+
                     this.toBinary(this.testJsonObject[testCaseNum].final.f)+"]"
                     );
