@@ -343,7 +343,14 @@ class smsVDP
 
     drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly)
     {
-        addr+=((y+finescrolly)%8)*4;
+        if (!flipv)
+        {
+            addr+=((y+finescrolly)%8)*4;
+        }
+        else
+        {
+            addr+=(7-((y+finescrolly)%8))*4;
+        }
 
         for (var xt=0;xt<8;xt++)
         {
@@ -352,10 +359,20 @@ class smsVDP
             var byte2=this.vRam[addr+2]
             var byte3=this.vRam[addr+3]
 
-            byte0>>=(7-xt); byte0&=1;
-            byte1>>=(7-xt); byte1&=1;
-            byte2>>=(7-xt); byte2&=1;
-            byte3>>=(7-xt); byte3&=1;
+            if (fliph)
+            {
+                byte0>>=xt; byte0&=1;
+                byte1>>=xt; byte1&=1;
+                byte2>>=xt; byte2&=1;
+                byte3>>=xt; byte3&=1;
+            }
+            else
+            {
+                byte0>>=(7-xt); byte0&=1;
+                byte1>>=(7-xt); byte1&=1;
+                byte2>>=(7-xt); byte2&=1;
+                byte3>>=(7-xt); byte3&=1;
+            }
 
             var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
             var curbyte=this.colorRam[cramIdx+(pal*16)];
@@ -746,6 +763,7 @@ class smsVDP
                 this.glbFrameBuffer[fbY+1]=0;
                 this.glbFrameBuffer[fbY+2]=0;
                 this.glbFrameBuffer[fbY+3]=255;
+                fbY+=4;
             }
 
             return;
@@ -755,7 +773,7 @@ class smsVDP
 
         var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 
-        // build the screenmap array
+        // build the screenmap array (yeah, we do this every time, this can be largely optimized)
         var screenMap=Array();
         for (var y=0;y<28;y++)
         {
@@ -783,7 +801,15 @@ class smsVDP
         for (var x=0;x<32;x++)
         {
             var word;
-            word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+            if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+            {
+                word=screenMap[((x)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                finescrollx=0;
+            }
+            else
+            {
+                word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+            }
 
             const flipH=(word>>9)&0x01;
             const flipV=(word>>10)&0x01;
