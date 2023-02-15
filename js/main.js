@@ -127,12 +127,17 @@ function emulate()
         while (emulatedCycles<targetCycles)
         {
             var cyc=glbCPU.executeOne();
-            glbVDP.update(glbCPU,cyc);
+            const needsBlit=glbVDP.update(glbCPU,cyc);
+
+            if (needsBlit)
+            {
+                drawScreen();
+            }
+
             emulatedCycles+=cyc;
         }
     }
 
-    drawScreen();
 
     setTimeout(emulate,10);
 }
@@ -149,7 +154,7 @@ function drawScreen()
         glbVDP.debugTiles(ctx,500,0);
     }
 
-    glbVDP.drawScreen(glbVideoctx);
+    //glbVDP.drawScreen(glbVideoctx);
     glbVDP.hyperBlit(glbVideoctx);
 }
 

@@ -341,6 +341,81 @@ class smsVDP
         }        
     }
 
+    drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly)
+    {
+        addr+=((y+finescrolly)%8)*4;
+
+        for (var xt=0;xt<8;xt++)
+        {
+            var byte0=this.vRam[addr]
+            var byte1=this.vRam[addr+1]
+            var byte2=this.vRam[addr+2]
+            var byte3=this.vRam[addr+3]
+
+            byte0>>=(7-xt); byte0&=1;
+            byte1>>=(7-xt); byte1&=1;
+            byte2>>=(7-xt); byte2&=1;
+            byte3>>=(7-xt); byte3&=1;
+
+            var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
+            var curbyte=this.colorRam[cramIdx+(pal*16)];
+            var red=(curbyte&0x03)*64;
+            var green=((curbyte>>2)&0x03)*64;
+            var blue=((curbyte>>4)&0x03)*64;
+
+            var xtile=x+xt;
+            var ytile=y;
+
+            if ((xtile>=0)&&(xtile<256)&&(ytile>=0)&&(ytile<192))
+            {
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=red;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=green;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=blue;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
+            }
+        }
+    }
+
+    drawSpriteSlice(addr,spriteX,scanlineNum,slicey)    
+    {
+        addr+=this.spritePatternGeneratorBaseAddress;
+        addr+=4*slicey;
+
+        for (var xt=0;xt<8;xt++)
+        {
+            var byte0=this.vRam[addr]
+            var byte1=this.vRam[addr+1]
+            var byte2=this.vRam[addr+2]
+            var byte3=this.vRam[addr+3]
+
+            byte0>>=(7-xt); byte0&=1;
+            byte1>>=(7-xt); byte1&=1;
+            byte2>>=(7-xt); byte2&=1;
+            byte3>>=(7-xt); byte3&=1;
+
+            var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
+            var curbyte=this.colorRam[cramIdx+16];
+
+            if (cramIdx!=0)
+            {
+                var red=(curbyte&0x03)*64;
+                var green=((curbyte>>2)&0x03)*64;
+                var blue=((curbyte>>4)&0x03)*64;
+
+                const cx=spriteX+xt;
+                const cy=scanlineNum;
+
+                if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.glbResolutionY))
+                {
+                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+0]=red;
+                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+1]=green;
+                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+2]=blue;
+                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+3]=255;
+                }
+            }
+        }
+    }
+
     drawSprite(addr,spriteX,spriteY)    
     {
         addr+=this.spritePatternGeneratorBaseAddress;
@@ -429,6 +504,8 @@ class smsVDP
         ctx.drawImage(this.glbCanvasRenderer,0,0,this.glbResolutionX,this.glbResolutionY);
     }
 
+    /* returns "needs blit" */
+
     update(theCPU,cycles)
     {
         // TODO check this
@@ -476,6 +553,7 @@ class smsVDP
                 this.statusFlags|=0x80;
             }
 
+            // frame interrupt
             if (this.currentScanlineIndex==193)
             {
                 if (this.register01&0x20)
@@ -494,6 +572,18 @@ class smsVDP
             {
                 this.currentScanlineIndex = 0;
             }            
+
+            if (this.currentScanlineIndex==0)
+            {
+                this.drawScanline(262);
+                return true;
+            }
+            else
+            {
+                this.drawScanline(this.currentScanlineIndex-1);
+            }
+
+            return false;
         }
     }
 
@@ -548,7 +638,7 @@ class smsVDP
         }
 
         var initialTile=32-((this.register08)>>3);
-        const finescrollx=this.register08&0x7;
+        var finescrollx=this.register08&0x7;
         var initialRow=Math.floor((this.register09)/8);
         const finescrolly=-(this.register09%8);
 
@@ -556,7 +646,16 @@ class smsVDP
         {
             for (var x=0;x<32;x++)
             {
-                const word=screenMap[((x+initialTile)%32)+(((y+initialRow)%28)*32)];
+                var word;
+                if ((this.register00&0x40)&&((y==0)||(y==1))) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+                {
+                    word=screenMap[((x)%32)+(((y+initialRow)%28)*32)];
+                    finescrollx=0;
+                }
+                else
+                {
+                    word=screenMap[((x+initialTile)%32)+(((y+initialRow)%28)*32)];
+                }
 
                 const flipH=(word>>9)&0x01;
                 const flipV=(word>>10)&0x01;
@@ -627,6 +726,133 @@ class smsVDP
                 }
             }
         }
+    }
+
+    // scanline renderer
+    drawScanline(scanlineNum)
+    {
+        if (scanlineNum>=192) return;
+
+        var fbY=(scanlineNum*this.glbResolutionX)*4;
+
+        // check for blanked display
+        // D6 - (BLK) 1= Display visible, 0= display blanked.
+        if (!(this.register01&0x40))
+        {
+            // display is blanked, black line
+            for (var i=0;i<256;i++)
+            {
+                this.glbFrameBuffer[fbY+0]=0;
+                this.glbFrameBuffer[fbY+1]=0;
+                this.glbFrameBuffer[fbY+2]=0;
+                this.glbFrameBuffer[fbY+3]=255;
+            }
+
+            return;
+        }
+
+        // background tiles
+
+        var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+
+        // build the screenmap array
+        var screenMap=Array();
+        for (var y=0;y<28;y++)
+        {
+            for (var x=0;x<32;x++)
+            {
+                var word=this.vRam[nameTableBaseAddress];
+                word|=this.vRam[nameTableBaseAddress+1]<<8;
+                screenMap.push(word);
+                nameTableBaseAddress+=2;             
+            }
+        }
+
+        // find the tile we have to draw and find the y row in this tile 
+        // things get complicated with the finescroll y value, but we'll do it
+
+        var initialTile=32-((this.register08)>>3);
+        var finescrollx=this.register08&0x7;
+        var initialRow=Math.floor((this.register09)/8);
+        const finescrolly=(this.register09%8);
+
+        const yScreenMap=Math.floor(scanlineNum/8);
+        var adder=0;
+        if ((finescrolly+(scanlineNum%8))>=8) adder=1;
+
+        for (var x=0;x<32;x++)
+        {
+            var word;
+            word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+
+            const flipH=(word>>9)&0x01;
+            const flipV=(word>>10)&0x01;
+            const pal=(word>>11)&0x01;
+            const priFlag=(word>>12)&0x01;
+
+            this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly);   
+        }
+
+        // sprites
+        var sat=this.spriteAttributeTableBaseAddress;
+
+        for (var s = 0; s < 64; s++) 
+        {
+			var spriteY=this.vRam[sat+s];
+			if (spriteY == 0xd0)
+            {
+				break;
+			}
+			spriteY++;
+
+            var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
+
+            if (this.register00&0x08)
+            {
+                spriteX-=8;
+            }
+
+            var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
+
+            var spritesAre8x16=false;
+            if ((this.register00&0x04)&&(this.register01&0x02)) spritesAre8x16=true;
+
+            if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
+            {
+                this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY);
+            }
+
+            // check for 8x16 sprites
+
+            if (spritesAre8x16)
+            {
+                // sprites are 8x16, draw second half
+                spriteIdx++;
+                if ((scanlineNum>=(spriteY+8))&&(scanlineNum<(spriteY+16)))
+                {
+                    this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
+                }
+            }
+        }
+
+        // column 0:  D5 - 1= Mask column 0 with overscan color from register #7
+        if (this.register00&0x20)
+        {
+            var oscol=this.colorRam[(this.register07&0x0f)+16];
+            var red=(oscol&0x03)*64;
+            var green=((oscol>>2)&0x03)*64;
+            var blue=((oscol>>4)&0x03)*64;
+
+            for (var x=0;x<8;x++)
+            {
+                const pos=(x+(scanlineNum*this.glbResolutionX))*4;
+                this.glbFrameBuffer[pos]=red;
+                this.glbFrameBuffer[pos+1]=green;
+                this.glbFrameBuffer[pos+2]=blue;
+                this.glbFrameBuffer[pos+3]=255;
+            }
+        }
 
     }
+
 }
