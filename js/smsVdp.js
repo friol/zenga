@@ -59,12 +59,17 @@ class smsVDP
 
     writeByteToRegister(registerIndex, dataByte)
     {
-        console.log("VDP::write byte 0x"+dataByte.toString(16).padStart(2,'0')+" to register "+registerIndex);
-
         if (registerIndex==0)
         {
             /* Register $00 - Mode Control No. 1 */
             this.register00=dataByte;
+
+            // D2 - (M4) 1= Use Mode 4, 0= Use TMS9918 modes (selected with M1, M2, M3)
+            if ((this.register00&0x04)==0)
+            {
+                console.log("VDP::warning: Use TMS9918 modes");
+                console.log("VDP::M2="+(((this.register00&0x02)!=0)?1:0));
+            }
 
             //D4 - (IE1) 1= Line interrupt enable
             if (this.register00&0x10)
@@ -76,6 +81,8 @@ class smsVDP
         {
             /*  Register $01 - Mode Control No. 2 */
             this.register01=dataByte;
+            //console.log("VDP::M1="+(((this.register01&0x10)!=0)?1:0));
+            //console.log("VDP::M3="+(((this.register01&0x08)!=0)?1:0));
         }
         else if (registerIndex==2)        
         {
@@ -112,6 +119,10 @@ class smsVDP
         {
             /* Register $0A - Line counter */
             this.register0a=dataByte;
+        }
+        else
+        {
+            console.log("VDP::write byte 0x"+dataByte.toString(16).padStart(2,'0')+" to unhandled register "+registerIndex);
         }
     }
 
@@ -376,9 +387,10 @@ class smsVDP
 
             var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
             var curbyte=this.colorRam[cramIdx+(pal*16)];
-            var red=(curbyte&0x03)*64;
-            var green=((curbyte>>2)&0x03)*64;
-            var blue=((curbyte>>4)&0x03)*64;
+            
+            let red = (curbyte & 0x03) * 85;
+			let green = ((curbyte & 0x0c) >> 2) * 85;
+			let blue = ((curbyte & 0x30) >> 4) * 85;
 
             var xtile=x+xt;
             var ytile=y;
@@ -415,10 +427,10 @@ class smsVDP
 
             if (cramIdx!=0)
             {
-                var red=(curbyte&0x03)*64;
-                var green=((curbyte>>2)&0x03)*64;
-                var blue=((curbyte>>4)&0x03)*64;
-
+                let red = (curbyte & 0x03) * 85;
+                let green = ((curbyte & 0x0c) >> 2) * 85;
+                let blue = ((curbyte & 0x30) >> 4) * 85;
+    
                 const cx=spriteX+xt;
                 const cy=scanlineNum;
 
@@ -865,9 +877,9 @@ class smsVDP
         if (this.register00&0x20)
         {
             var oscol=this.colorRam[(this.register07&0x0f)+16];
-            var red=(oscol&0x03)*64;
-            var green=((oscol>>2)&0x03)*64;
-            var blue=((oscol>>4)&0x03)*64;
+            let red = (oscol & 0x03) * 85;
+			let green = ((oscol & 0x0c) >> 2) * 85;
+			let blue = ((oscol & 0x30) >> 4) * 85;
 
             for (var x=0;x<8;x++)
             {
