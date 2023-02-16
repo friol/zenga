@@ -52,7 +52,10 @@ class smsVDP
 
         this.glbResolutionX=256;
         this.glbResolutionY=192;
+
         this.glbFrameBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY*4);
+        this.priBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY);
+
         this.glbImgData=undefined;
         this.glbCanvasRenderer=undefined;
     }
@@ -352,7 +355,7 @@ class smsVDP
         }        
     }
 
-    drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly)
+    drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly,priFlag)
     {
         if (!flipv)
         {
@@ -401,6 +404,8 @@ class smsVDP
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=green;
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=blue;
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
+
+                this.priBuffer[(x+xt+((y)*this.glbResolutionX))]=priFlag;
             }
         }
     }
@@ -436,10 +441,13 @@ class smsVDP
 
                 if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.glbResolutionY))
                 {
-                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+0]=red;
-                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+1]=green;
-                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+2]=blue;
-                    this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+3]=255;
+                    if (this.priBuffer[(spriteX+xt+((cy)*this.glbResolutionX))]==0)
+                    {
+                        this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+0]=red;
+                        this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+1]=green;
+                        this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+2]=blue;
+                        this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+3]=255;
+                    }
                 }
             }
         }
@@ -828,7 +836,7 @@ class smsVDP
             const pal=(word>>11)&0x01;
             const priFlag=(word>>12)&0x01;
 
-            this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly);   
+            this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly,priFlag);   
         }
 
         // sprites
