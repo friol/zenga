@@ -5110,7 +5110,19 @@ class z80cpu
             self.registers.iyh=self.registers.a;
             self.incPc(2); 
         }, "LD IYH,A", 8, 0, true];
+
+        this.prefixfdOpcodes[0x69]=[function() 
+        {
+            self.registers.iyl=self.registers.c;
+            self.incPc(2); 
+        }, "LD IYL,C", 8, 0, true];
     
+        this.prefixfdOpcodes[0x6b]=[function() 
+        {
+            self.registers.iyl=self.registers.e;
+            self.incPc(2); 
+        }, "LD IYL,E", 8, 0, true];
+            
         this.prefixfdOpcodes[0x6e]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
