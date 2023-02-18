@@ -17,10 +17,11 @@ class sn79489
     {
         this.volregister=[0xf,0xf,0xf,0xf];
         this.toneregister=[0,0,0,0];
+        this.wavePos=[0,0,0,0];
 
         this.chan2belatched=0;
         this.what2latch=0;
-        this.data=0x0;
+        this.latch=0;
 
         //
         // audio engine
@@ -29,6 +30,8 @@ class sn79489
         this.eventsQueue=new Array();
         this.internalClock=0;
         this.internalClockPos=0;
+
+        this.squareWaveLen=8192;
 
         this.audioInitialized=false;
     }
@@ -63,11 +66,6 @@ class sn79489
             this.gainNode.connect(this.context.destination);
 
             this.multiplier=Math.floor(thecpu.clockRate/this.jsNode.context.sampleRate);
-            this.sampleArray=new Array(this.multiplier);
-            for (var i=0;i<this.multiplier;i++)
-            {
-                this.sampleArray[i]=0.0;
-            }
 
             this.audioInitialized=true;
         }
@@ -95,45 +93,109 @@ class sn79489
         if (numClocksToCover<=0) return;
         var realStep=numClocksToCover/(this.multiplier*this.audioBufSize);
 
+        for (var s=0;s<this.audioBufSize;s++)
+        {
+            var runningTotal=0.0;
 
+            for (var cyc=0;cyc<this.multiplier;cyc++)
+            {
+                // process queued events if current time >= event timestamp
+                if ((this.eventsQueue.length>0)&&(this.eventsQueue[0][1]<=Math.floor(this.internalClockPos)))
+                {
+                    var curEvent=this.eventsQueue.shift();
+                    var b=curEvent[0];
+
+                    if (b&0x80)
+                    {
+                        // If bit 7 is 1 then the byte is a LATCH/DATA byte. 
+
+                        this.chan2belatched=(b>>5)&0x03;
+                        this.what2latch=((b&0x10)==0x10)?1:0; // Bit 4 determines whether to latch volume (1) or tone/noise (0) data 
+
+                        if (this.what2latch==1)
+                        {
+                            this.volregister[this.chan2belatched]=b&0x0f;
+                        }
+                        else
+                        {
+                            this.toneregister[this.chan2belatched]=(this.toneregister[this.chan2belatched]&0xff00)|((b<<4)&0x00FF);
+                        }
+                    }
+                    else
+                    {
+                        // If bit 7 is 0 then the byte is a DATA byte.
+
+                        //If the currently latched register is a tone register then the low 6
+                        //bits of the byte are placed into the high 6 bits of the latched
+                        //register. Otherwise, the low 4 bits are placed into the low 4 bits
+                        //of the relevant register*.
+
+                        if (this.what2latch==1)
+                        {
+                            this.volregister[this.chan2belatched]=b&0xf;
+                        }
+                        else
+                        {
+                            this.toneregister[this.chan2belatched]=(this.toneregister[this.chan2belatched]&0xff)|((b<<8)&0x3F00);
+                        }
+                    }
+                }
+
+                //
+                // MIX
+                //
+
+                //if (globalEmuStatus==1)
+                {
+                    runningTotal+=this.mixVoices()/3.0;                
+                }
+
+                this.internalClockPos+=realStep;
+            }
+
+            runningTotal/=this.multiplier;
+
+            dataL[s]=runningTotal;
+            dataR[s]=runningTotal;
+        }
+
+        if (this.eventsQueue.length>0) 
+        {
+            this.eventsQueue=[];        
+        }
+    }
+
+    mixVoices()
+    {
+        var finalSample=0;
+
+        for (var v=0;v<3;v++)
+        {
+            var curSamp=0;
+
+            if (this.volregister[v]!=0)
+            {
+                if (this.toneregister[v]!=0)
+                {
+                    var pos=Math.floor(this.wavePos[v]%this.squareWaveLen);
+                    //if (pos<this.toneregister[v]) curSamp=1.0;
+                    if (pos<(this.squareWaveLen/2)) curSamp=1.0;
+                    //var realFreq=this.toneregister[v]/(this.multiplier*16.0);
+                    var realFreq=(3579545.0/(32*this.toneregister[v]))/(this.multiplier*0.37);
+                    this.wavePos[v]+=realFreq;
+                    this.wavePos[v]%=this.squareWaveLen;
+                }
+
+                curSamp=(curSamp*(0xf-this.volregister[v]))/0x0f;
+                finalSample+=curSamp;
+            }
+        }
+
+        return finalSample;
     }
 
     writeByte(b)
     {
-        if (b&0x80)
-        {
-            /* If bit 7 is 1 then the byte is a LATCH/DATA byte. */
-
-            this.chan2belatched=(b>>5)&0x03;
-            this.what2latch=(b>>4)&0x01; /* Bit 4 determines whether to latch volume (1) or tone/noise (0) data */
-            this.data=b&0xf;
-
-            if (this.what2latch==1)
-            {
-                this.volregister[this.chan2belatched]=this.data;
-            }
-            else
-            {
-                this.toneregister[this.chan2belatched]|=this.data;
-            }
-        }
-        else
-        {
-            /* If bit 7 is 0 then the byte is a DATA byte. */
-
-            /*If the currently latched register is a tone register then the low 6
-            bits of the byte are placed into the high 6 bits of the latched
-            register. Otherwise, the low 4 bits are placed into the low 4 bits
-            of the relevant register*.*/
-
-            if (this.what2latch==1)
-            {
-                this.volregister[this.chan2belatched]=b&0xf;
-            }
-            else
-            {
-                this.toneregister[this.chan2belatched]|=(b&0x3f)<<6;
-            }
-        }
+        this.eventsQueue.push([b,this.internalClock]);
     }
 }

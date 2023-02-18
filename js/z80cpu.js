@@ -4330,6 +4330,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 5,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0xac]=[function()
+        {
+            self.registers.h&=~0x20;
+            self.incPc(2); 
+        }, "RES 5,H", 8, 0, false];
+    
         this.prefixcbOpcodes[0xad]=[function()
         {
             self.registers.l&=~0x20;
@@ -4560,7 +4566,13 @@ class z80cpu
             self.registers.c|=0x04;
             self.incPc(2); 
         }, "SET 2,C", 8, 0, false];
-    
+
+        this.prefixcbOpcodes[0xd2]=[function()
+        {
+            self.registers.d|=0x04;
+            self.incPc(2); 
+        }, "SET 2,D", 8, 0, false];
+            
         this.prefixcbOpcodes[0xd3]=[function()
         {
             self.registers.e|=0x04;
@@ -4599,6 +4611,12 @@ class z80cpu
             self.registers.c|=0x08;
             self.incPc(2); 
         }, "SET 3,C", 8, 0, false];
+
+        this.prefixcbOpcodes[0xda]=[function()
+        {
+            self.registers.d|=0x08;
+            self.incPc(2); 
+        }, "SET 3,D", 8, 0, false];
             
         this.prefixcbOpcodes[0xdb]=[function()
         {

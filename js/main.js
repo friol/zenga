@@ -128,8 +128,8 @@ function emulate()
         while (emulatedCycles<targetCycles)
         {
             var cyc=glbCPU.executeOne();
-            const needsBlit=glbVDP.update(glbCPU,cyc);
             glbSoundchip.step(glbCPU.totCycles);
+            const needsBlit=glbVDP.update(glbCPU,cyc);
 
             if (needsBlit)
             {
@@ -141,7 +141,7 @@ function emulate()
     }
 
 
-    setTimeout(emulate,10);
+    setTimeout(emulate,13);
 }
 
 function drawScreen()
