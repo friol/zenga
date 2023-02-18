@@ -2,10 +2,11 @@
 
 class smsMmu
 {
-    constructor(theCart,theVDP)
+    constructor(theCart,theVDP,theSoundchip)
     {
         this.theCartridge=theCart;
         this.theVDP=theVDP;
+        this.theSoundchip=theSoundchip;
 
         // system RAM
 
@@ -290,7 +291,7 @@ class smsMmu
     {
         if ((port >= 0x40) && (port <= 0x7f))
         {
-            // TODO soundchip
+            this.theSoundchip.writeByte(v);
 		} 
         else if ((port >= 0x80) && (port <= 0xbf))
         {

@@ -11,6 +11,7 @@ var glbMMU;
 var glbCPU;
 var glbCartridge;
 var glbVDP;
+var glbSoundchip;
 
 // fps counter
 var frameTime = 0;
@@ -128,6 +129,7 @@ function emulate()
         {
             var cyc=glbCPU.executeOne();
             const needsBlit=glbVDP.update(glbCPU,cyc);
+            glbSoundchip.step(glbCPU.totCycles);
 
             if (needsBlit)
             {
@@ -179,8 +181,10 @@ function handleCartridgeUpload(fls)
         glbCartridge=new cartridge();
         glbCartridge.load(arrayBuffer);
         glbVDP=new smsVDP();
-        glbMMU=new smsMmu(glbCartridge,glbVDP);
+        glbSoundchip=new sn79489();
+        glbMMU=new smsMmu(glbCartridge,glbVDP,glbSoundchip);
         glbCPU=new z80cpu(glbMMU);
+        glbSoundchip.startMix(glbCPU);
 
         glbEmulatorStatus=0;
         emulate();

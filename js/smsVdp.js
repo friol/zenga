@@ -405,7 +405,14 @@ class smsVDP
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=blue;
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
 
-                this.priBuffer[(x+xt+((y)*this.glbResolutionX))]=priFlag;
+                if (cramIdx!=0)
+                {
+                    this.priBuffer[(x+xt+((y)*this.glbResolutionX))]=priFlag;
+                }
+                else
+                {
+                    this.priBuffer[(x+xt+((y)*this.glbResolutionX))]=0;
+                }
             }
         }
     }
@@ -768,6 +775,7 @@ class smsVDP
     // scanline renderer
     drawScanline(scanlineNum)
     {
+        if (scanlineNum<0) return;
         if (scanlineNum>=192) return;
 
         var fbY=(scanlineNum*this.glbResolutionX)*4;

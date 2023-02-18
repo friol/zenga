@@ -21,6 +21,81 @@ class sn79489
         this.chan2belatched=0;
         this.what2latch=0;
         this.data=0x0;
+
+        //
+        // audio engine
+        //
+
+        this.eventsQueue=new Array();
+        this.internalClock=0;
+        this.internalClockPos=0;
+
+        this.audioInitialized=false;
+    }
+
+    startMix(thecpu)
+    {
+        try 
+        {
+            this.audioEnabled=true;
+            //this.audioEnabled=false;
+            //return;
+
+            this.audioBufSize=1024;
+
+            var self=this;
+            this.webAudioAPIsupported=true;
+    
+            window.AudioContext = window.AudioContext||window.webkitAudioContext;
+            this.context = new AudioContext();
+    
+            this.gainNode = this.context.createGain();
+            this.gainNode.gain.value = 0.5;
+    
+            this.jsNode = this.context.createScriptProcessor(this.audioBufSize, 0, 2);
+            this.jsNode.onaudioprocess = function(e)
+            {
+                self.mixFunction(e);
+            }
+    
+            this.jsNode.connect(this.gainNode);
+    
+            this.gainNode.connect(this.context.destination);
+
+            this.multiplier=Math.floor(thecpu.clockRate/this.jsNode.context.sampleRate);
+            this.sampleArray=new Array(this.multiplier);
+            for (var i=0;i<this.multiplier;i++)
+            {
+                this.sampleArray[i]=0.0;
+            }
+
+            this.audioInitialized=true;
+        }
+        catch(e) 
+        {
+            alert('Error: Web Audio API is not supported in this browser. Buy a new one.');
+            this.webAudioAPIsupported=false;
+        }        
+    }
+
+    step(totCpuCycles)
+    {
+        this.internalClock=totCpuCycles;
+    }
+
+    mixFunction(e)
+    {
+        if (!this.audioEnabled) return;
+        if (!this.audioInitialized) return;
+
+        var dataL = e.outputBuffer.getChannelData(0);
+        var dataR = e.outputBuffer.getChannelData(1);
+
+        var numClocksToCover=this.internalClock-this.internalClockPos;
+        if (numClocksToCover<=0) return;
+        var realStep=numClocksToCover/(this.multiplier*this.audioBufSize);
+
+
     }
 
     writeByte(b)
