@@ -161,15 +161,18 @@ function emulate()
 
     if (!glbMaxSpeed)
     {
-        if (fpeez<smsFps)
+        if (glbCPU.totCycles>1000000)
         {
-            // accelerate!
-            if (glbScheduleInterval>1) glbScheduleInterval--;
-        }
-        else if (fpeez>smsFps)
-        {
-            // brake!!!
-            glbScheduleInterval++;
+            if (fpeez<smsFps)
+            {
+                // accelerate!
+                if (glbScheduleInterval>1) glbScheduleInterval--;
+            }
+            else if (fpeez>smsFps)
+            {
+                // brake!!!
+                glbScheduleInterval++;
+            }
         }
     }
 
@@ -371,6 +374,7 @@ function hideDebugStuff()
     document.getElementById("smsdisplay").style.height="576px";
     document.getElementById("cartridgeSelector").style.display="none";
     document.getElementById("fileselector").style.display="none";
+    document.getElementById("fsbutton").style.display="block";
 }
 
 function showDebugStuff()

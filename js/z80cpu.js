@@ -4258,6 +4258,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 2,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0x93]=[function()
+        {
+            self.registers.e&=~0x04;
+            self.incPc(2); 
+        }, "RES 2,E", 8, 0, false];
+    
         this.prefixcbOpcodes[0x95]=[function()
         {
             self.registers.l&=~0x04;
@@ -5983,6 +5989,12 @@ class z80cpu
             self.incPc(3); 
         }, "LD (IX+%d),A", 19, 1, false];
 
+        this.prefixddOpcodes[0x7d]=[function() 
+        {
+            self.registers.a=self.registers.ixl;
+            self.incPc(2); 
+        }, "LD A,IXL", 8, 0, true];
+    
         this.prefixddOpcodes[0x7e]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
