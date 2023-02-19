@@ -15,7 +15,7 @@ I used javascript, of course. Javascript is so flexible and accessible that my o
 Zenga was started because sometimes I feel the urge to code something, and because SMS is a nice old console.<br/>
 Probably, the best thing about the 20 days that this coding streak lasted is the diary I wrote along the way, that translates into 10 articles on Medium, from the beginning of the project to a reasonable, temporary, ending.<br/><br/>
 
-Here are the 10 chapters:<br/>
+Here are the 10 chapters:<br/><br/>
 https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-1-planning-it-all-9b49c75ff5cd
 https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-2-tackling-the-cpu-3f6a14b6658
 https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-3-the-vdp-video-display-problem-e8d715b3ec56
