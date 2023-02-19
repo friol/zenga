@@ -7,7 +7,11 @@ The biggest mediatic event of that era was the 1990 football world cup, that was
 So, which name is more appropriate for this emulator? None.
 <br/><br/>
 I used javascript, of course. Javascript is so flexible and accessible that my only regret is to have written dream86 in Rust (damned Internet - x86 was totally feasible in javascript, and I bet it would have been faster than the Rust result).
-<br/><br/>
+<br/>
+
+![sonic](https://user-images.githubusercontent.com/4502137/219975397-aed50047-d139-4c95-866e-e4009396daa5.png)
+
+<br/>
 Zenga was started because sometimes I feel the urge to code something, and because SMS is a nice old console.<br/>
 Probably, the best thing about the 20 days that this coding streak lasted is the diary I wrote along the way, that translates into 10 articles on Medium, from the beginning of the project to a reasonable, temporary, ending.<br/><br/>
 
@@ -23,7 +27,4 @@ https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-8-d
 https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-9-sounds-like-maneskin-184315018e9f
 https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-10-summing-it-all-41d5423dec92
 
-![sonic](https://user-images.githubusercontent.com/4502137/219975397-aed50047-d139-4c95-866e-e4009396daa5.png)
-
 For the rest, it is a nice little SMS emulator you can use everywhere (at home, at work... ops).
-
