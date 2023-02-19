@@ -2,7 +2,7 @@
 # Zenga - A Sega Master System emulator with a strange name
 
 I grew up with 80s and 90s suggestions, in Italy.<br/><br/>
-The biggest mediatic event of that era was the 1990 football world cup, that was taking place (obviously) in Italy. Despite the expectations, we finished third, and Walter Zenga was our great (or not so great) goalkeeper. Nonetheless, he used his popularity to become a testimonial for the Sega Master System console, and Megadrive/Genesis after that, filming some TV spots.<br/>
+The biggest mediatic event of that era was the 1990 football world cup, that was taking place (obviously) in Italy. Despite the expectations, we finished third, and **Walter Zenga** was our great (or not so great) goalkeeper. Nonetheless, he used his popularity to become a testimonial for the Sega Master System console, and Megadrive/Genesis after that, filming some TV spots.<br/>
 <br/>
 So, which name is more appropriate for this emulator? None.
 <br/><br/>
