@@ -23,11 +23,17 @@
 
     <body>
         <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.6a - <span id="fpsSpan"></span></div>
-        <canvas width=800 height=400 id="debugCanvas"></canvas>
-        <!--<canvas width=256 height=192 id="smsdisplay" style="width:512px;height:384px;"></canvas>-->
+        <canvas width=800 height=400 id="debugCanvas" style="display: none;"></canvas>
         <canvas width=256 height=192 id="smsdisplay"></canvas>
-        <br/><br/>
-        <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
+        <div id="fileselector">
+            <br/>
+            <br/>
+            <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
+            <br/><br/>
+        </div>
+        <div id="taglineDiv">z, x and arrows to play, \ to ffwd<br/>
+        <button id="fsbutton" onclick="fullscreen();">Fullscreen!</button></div>
+        <!--
         <br/><br/>
         <div id="debugButtons">
             <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
@@ -41,6 +47,7 @@
             <input type="text" id="bpaddress" name="bpaddress" value="453">
             <button onclick="gotoAddress();">Goto address</button>
         </div>
+        -->
 
     </body>
 </html>

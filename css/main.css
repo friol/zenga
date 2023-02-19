@@ -1,5 +1,16 @@
 /* this is the .css file */
 
+html, body 
+{
+    overflow: hidden; /* Hide scrollbars */
+}
+
+#nomargin
+{
+    padding: 0;
+    margin: 0;
+}
+
 canvas 
 { 
     image-rendering: pixelated; 

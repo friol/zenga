@@ -25,6 +25,7 @@ const numDebuggerLines=20;
 var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running
 var glbVideoctx;
 var glbMaxSpeed=false;
+var glbScheduleInterval=13;
 
 //
 
@@ -120,6 +121,8 @@ function drawFFWDIcon()
 
 function emulate()
 {
+    const smsFps=59.922743;
+
     // calc fps
     const filterStrength = 20;
     var thisFrameTime = (thisLoop=new Date) - lastLoop;
@@ -137,7 +140,7 @@ function emulate()
 
         // Refresh rate: 59.922743 Hz (NTSC)
         // Clock rate: 3.579545 MHz (NTSC)
-        var targetCycles=Math.floor(glbCPU.clockRate/59.922743);
+        var targetCycles=Math.floor(glbCPU.clockRate/smsFps);
 
         while (emulatedCycles<targetCycles)
         {
@@ -158,7 +161,21 @@ function emulate()
 
     if (!glbMaxSpeed)
     {
-        setTimeout(emulate,13);
+        if (fpeez<smsFps)
+        {
+            // accelerate!
+            if (glbScheduleInterval>1) glbScheduleInterval--;
+        }
+        else if (fpeez>smsFps)
+        {
+            // brake!!!
+            glbScheduleInterval++;
+        }
+    }
+
+    if (!glbMaxSpeed)
+    {
+        setTimeout(emulate,glbScheduleInterval);
     }
     else
     {
@@ -208,7 +225,9 @@ function handleCartridgeUpload(fls)
         glbCPU=new z80cpu(glbMMU);
         glbSoundchip.startMix(glbCPU);
 
-        glbEmulatorStatus=0;
+        //glbEmulatorStatus=0;
+        glbEmulatorStatus=1;
+        hideDebugStuff();
         emulate();
 	};
 	fileReader.readAsArrayBuffer(fls[0]);	
@@ -313,12 +332,45 @@ function runCPUTests(t)
     }
 }
 
+function fullscreen()
+{
+    document.documentElement.requestFullscreen();
+}
+
+function fullscreenchanged(event) 
+{
+    if (document.fullscreenElement) 
+    {
+        document.getElementById("titleDiv").style.display="none";
+        document.getElementById("taglineDiv").style.display="none";
+        document.getElementById("fsbutton").style.display="none";
+        document.getElementById("smsdisplay").style.position="absolute";
+        document.getElementById("smsdisplay").style.width="100%";
+        document.getElementById("smsdisplay").style.height="100%";
+        document.body.style.padding='0';
+        document.body.style.margin='0';
+    }
+    else
+    {
+        document.getElementById("titleDiv").style.display="block";
+        document.getElementById("taglineDiv").style.display="block";
+        document.getElementById("fsbutton").style.display="block";
+        document.getElementById("smsdisplay").style.position="relative";
+        document.getElementById("smsdisplay").style.width="768px";
+        document.getElementById("smsdisplay").style.height="576px";
+        document.body.style.padding='5px';
+        document.body.style.margin='5px';
+    }
+};
+
 function hideDebugStuff()
 {
-    document.getElementById("debugCanvas").style.display="none";
-    document.getElementById("debugButtons").style.display="none";
+    //document.getElementById("debugCanvas").style.display="none";
+    //document.getElementById("debugButtons").style.display="none";
     document.getElementById("smsdisplay").style.width="768px";
     document.getElementById("smsdisplay").style.height="576px";
+    document.getElementById("cartridgeSelector").style.display="none";
+    document.getElementById("fileselector").style.display="none";
 }
 
 function showDebugStuff()
@@ -333,7 +385,7 @@ window.onload = (event) =>
 {
     document.onkeydown = function(e)
 	{
-        if (e.key=="s")
+        /*if (e.key=="s")
         {
             showDebugStuff();
             glbEmulatorStatus=0;
@@ -361,7 +413,7 @@ window.onload = (event) =>
             hideDebugStuff();
             glbEmulatorStatus=1;
         }
-        else if (e.key=="\\")
+        else*/ if (e.key=="\\")
         {
             glbMaxSpeed=true;
         }
@@ -390,7 +442,7 @@ window.onload = (event) =>
     var canvas = document.getElementById('debugCanvas');
     canvas.addEventListener("mousemove", function (e) 
     {
-        if (glbEmulatorStatus==-1) return;
+        if (glbEmulatorStatus!=0) return;
 
         var rect = canvas.getBoundingClientRect();
         var mousex=(e.clientX-rect.left);
@@ -403,7 +455,7 @@ window.onload = (event) =>
 
     canvas.addEventListener("mousedown", function (e) 
     {
-        if (glbEmulatorStatus==-1) return; 
+        if (glbEmulatorStatus!=0) return; 
 
         var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
 
@@ -415,7 +467,7 @@ window.onload = (event) =>
         glbBreakpoint=decodedInstrs[row].address;
     });    
 
-    //document.addEventListener('fullscreenchange', fullscreenchanged);
+    document.addEventListener('fullscreenchange', fullscreenchanged);
 
     const videocanvas=document.getElementById("smsdisplay");
     glbVideoctx = videocanvas.getContext("2d");
