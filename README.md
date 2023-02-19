@@ -1,7 +1,8 @@
 # Zenga - A Sega Master System emulator with a strange name
 
-I've grown up with 80s and 90s suggestions, in Italy.<br/>
+I've grown up with 80s and 90s suggestions, in Italy.<br/><br/>
 So, the biggest mediatic event in that era was the 1990 football world cup, that was taking place in Italy. Despite the expectations, we came up third, and Walter Zenga was our great (or not so great) goalkeeper. Nonetheless, he used his popularity to become a testimonial for the Sega Master System console, and Megadrive/Genesis after that, filming some TV spots.<br/>
 <br/>
-So, what name is more appropriate for this emulator?
+So, what name is more appropriate for this emulator? No name.
 <br/><br/>
+I used javascript, of course. Javascript is so flexible and accessible that my only regret is to have written dream86 in Rust (damned Internet - x86 was totally feasible in javascript, and I bet it would have been faster than the Rust result).
