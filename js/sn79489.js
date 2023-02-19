@@ -32,6 +32,13 @@ class sn79489
         this.internalClockPos=0;
 
         this.squareWaveLen=8192;
+        this.randDim=65536;
+        this.randBuffer=new Array();
+        for (var s=0;s<this.randDim;s++)
+        {
+            this.randBuffer.push(Math.random()*1.0);
+        }
+        this.randPos=0;
 
         this.audioInitialized=false;
     }
@@ -147,7 +154,7 @@ class sn79489
 
                 //if (globalEmuStatus==1)
                 {
-                    runningTotal+=this.mixVoices()/3.0;                
+                    runningTotal+=this.mixVoices()/4.0;                
                 }
 
                 this.internalClockPos+=realStep;
@@ -169,7 +176,8 @@ class sn79489
     {
         var finalSample=0;
 
-        for (var v=0;v<3;v++)
+        for (var v=0;v<4;v++)
+        //var v=3;
         {
             var curSamp=0;
 
@@ -177,13 +185,20 @@ class sn79489
             {
                 if (this.toneregister[v]!=0)
                 {
-                    var pos=Math.floor(this.wavePos[v]%this.squareWaveLen);
-                    //if (pos<this.toneregister[v]) curSamp=1.0;
-                    if (pos<(this.squareWaveLen/2)) curSamp=1.0;
-                    //var realFreq=this.toneregister[v]/(this.multiplier*16.0);
-                    var realFreq=(3579545.0/(32*this.toneregister[v]))/(this.multiplier*0.37);
-                    this.wavePos[v]+=realFreq;
-                    this.wavePos[v]%=this.squareWaveLen;
+                    if (v<3)
+                    {
+                        var pos=Math.floor(this.wavePos[v]%this.squareWaveLen);
+                        if (pos<(this.squareWaveLen/2)) curSamp=1.0;
+                        var realFreq=(3579545.0/(32*this.toneregister[v]))/(this.multiplier*0.37);
+                        this.wavePos[v]+=realFreq;
+                        this.wavePos[v]%=this.squareWaveLen;
+                    }
+                    else
+                    {
+                        curSamp=this.randBuffer[this.randPos]*2.0;
+                        this.randPos++;
+                        this.randPos%=this.randDim;
+                    }
                 }
 
                 curSamp=(curSamp*(0xf-this.volregister[v]))/0x0f;

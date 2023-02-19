@@ -3878,6 +3878,12 @@ class z80cpu
             self.incPc(2); 
         }, "SRA B", 8, 0, false];
 
+        this.prefixcbOpcodes[0x29]=[function() 
+        {
+            self.registers.c = self.sra_8bit(self.registers.c); 
+            self.incPc(2); 
+        }, "SRA C", 8, 0, false];
+    
         this.prefixcbOpcodes[0x2a]=[function() 
         {
             self.registers.d = self.sra_8bit(self.registers.d); 
@@ -6153,6 +6159,26 @@ class z80cpu
     {
         let self = this;
 
+        this.prefixddcbOpcodes[0x06]=[function()
+        { 
+            var m1=self.theMMU.readAddr(self.registers.pc+2);
+
+            const ix=self.registers.ixl|(self.registers.ixh<<8); 
+
+            var incr;
+            if ((m1&0x80)==0x80) 
+            {
+                incr=-0x80+(m1&0x7F);
+            }
+            else incr=m1;
+
+            const addr=(ix+incr)&0xffff;
+
+            const res=self.rlc_8bit(self.theMMU.readAddr(addr));
+            self.theMMU.writeAddr(addr,res);
+            self.incPc(4); 
+        }, "RLC (IX+%d)", 23, 0, false];
+    
         this.prefixddcbOpcodes[0x16]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
