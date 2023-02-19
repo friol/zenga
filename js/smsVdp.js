@@ -869,6 +869,11 @@ class smsVDP
 			}
 			spriteY++;
 
+            if (spriteY>0xd0)
+            {
+				spriteY -= 0x100;
+			}
+
             var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
 
             if (this.register00&0x08)
