@@ -16,15 +16,15 @@ Zenga was started because sometimes I feel the urge to code something, and becau
 Probably, the best thing about the 20 days that this coding streak lasted is the diary I wrote along the way, that translates into 10 articles on Medium, from the beginning of the project to a reasonable, temporary, ending.<br/><br/>
 
 Here are the 10 chapters:<br/><br/>
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-1-planning-it-all-9b49c75ff5cd
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-2-tackling-the-cpu-3f6a14b6658
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-3-the-vdp-video-display-problem-e8d715b3ec56
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-4-stressing-me-and-the-cpu-8c3a016987b
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-5-starting-the-real-action-3b0f232daab6
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-6-the-hardest-part-1e1d90bf70c5
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-7-taking-off-efca94f65bc1
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-8-doing-it-by-scanline-e79fbcc1ac3d
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-9-sounds-like-maneskin-184315018e9f
-https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-10-summing-it-all-41d5423dec92
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-1-planning-it-all-9b49c75ff5cd <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-2-tackling-the-cpu-3f6a14b6658 <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-3-the-vdp-video-display-problem-e8d715b3ec56 <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-4-stressing-me-and-the-cpu-8c3a016987b <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-5-starting-the-real-action-3b0f232daab6 <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-6-the-hardest-part-1e1d90bf70c5 <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-7-taking-off-efca94f65bc1 <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-8-doing-it-by-scanline-e79fbcc1ac3d <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-9-sounds-like-maneskin-184315018e9f <br/>
+https://medium.com/@frioltheoil/coding-a-sega-master-system-emulator-chapter-10-summing-it-all-41d5423dec92 <br/>
 
 For the rest, it is a nice little SMS emulator you can use everywhere (at home, at work... ops).
