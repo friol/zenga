@@ -92,6 +92,16 @@ class smsVDP
             /*  Register $02 - Name Table Base Address */
             this.nameTableBaseAddress = dataByte;
         }
+        else if (registerIndex==3)
+        {
+            /* Register $03 - Color Table Base Address */
+            // this register does nothing, apparently
+        }
+        else if (registerIndex==4)
+        {
+            /* Register $04 - Background Pattern Generator Base Address */
+            // this register does nothing, apparently
+        }
         else if (registerIndex==5)
         {
             /*  Register $05 - Sprite attribute Table Base Address */

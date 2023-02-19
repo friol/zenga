@@ -24,6 +24,7 @@ const numDebuggerLines=20;
 
 var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running
 var glbVideoctx;
+var glbMaxSpeed=false;
 
 //
 
@@ -104,6 +105,19 @@ function drawDebugPanel(instructions)
     ctx.fillText("PC: "+(glbCPU.registers.pc).toString(16).padStart(4,'0'),regxpos,ycoord);
 }
 
+function drawFFWDIcon()
+{
+    var cnvs = document.getElementById("smsdisplay");
+    var ctx = cnvs.getContext("2d", { willReadFrequently: true });
+
+    ctx.font='10px arial';
+    ctx.fillStyle = 'white';
+    ctx.textBaseline = 'top';
+
+    ctx.fillText(">>",2,180);        
+    //ctx.fillText("ffwd",10,180);        
+}
+
 function emulate()
 {
     // calc fps
@@ -128,7 +142,7 @@ function emulate()
         while (emulatedCycles<targetCycles)
         {
             var cyc=glbCPU.executeOne();
-            glbSoundchip.step(glbCPU.totCycles);
+            if (!glbMaxSpeed) glbSoundchip.step(glbCPU.totCycles);
             const needsBlit=glbVDP.update(glbCPU,cyc);
 
             if (needsBlit)
@@ -140,8 +154,16 @@ function emulate()
         }
     }
 
+    if (glbMaxSpeed) drawFFWDIcon();
 
-    setTimeout(emulate,13);
+    if (!glbMaxSpeed)
+    {
+        setTimeout(emulate,13);
+    }
+    else
+    {
+        setTimeout(emulate,0);
+    }
 }
 
 function drawScreen()
@@ -339,6 +361,10 @@ window.onload = (event) =>
             hideDebugStuff();
             glbEmulatorStatus=1;
         }
+        else if (e.key=="\\")
+        {
+            glbMaxSpeed=true;
+        }
         else if (e.key=="z") { glbMMU.pressButton1(); }
         else if (e.key=="x") { glbMMU.pressButton2(); }
         else if (e.key=="ArrowDown") { glbMMU.pressDown(); }
@@ -355,6 +381,10 @@ window.onload = (event) =>
         else if (e.key=="ArrowUp") { glbMMU.depressUp(); }
         else if (e.key=="ArrowLeft") { glbMMU.depressLeft(); }
         else if (e.key=="ArrowRight") { glbMMU.depressRight(); }
+        else if (e.key=="\\")
+        {
+            glbMaxSpeed=false;
+        }
     }
 
     var canvas = document.getElementById('debugCanvas');
