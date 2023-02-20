@@ -174,6 +174,8 @@ class sn79489
 
     mixVoices()
     {
+        if (glbEmulatorStatus!=1) return 0; // quiet if not running or anything
+
         var finalSample=0;
 
         for (var v=0;v<4;v++)
@@ -181,7 +183,7 @@ class sn79489
         {
             var curSamp=0;
 
-            if (this.volregister[v]!=0)
+            if (this.volregister[v]!=0xf)
             {
                 if (this.toneregister[v]!=0)
                 {

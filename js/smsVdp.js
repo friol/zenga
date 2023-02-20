@@ -24,7 +24,7 @@ class smsVDP
             this.colorRam.push(0);            
         }
 
-        this.clockCyclesPerScanline=226;
+        this.clockCyclesPerScanline=228;
         this.currentScanlineIndex=0; // 0-262
         this.lineCounter=0;
 
@@ -84,6 +84,16 @@ class smsVDP
         {
             /*  Register $01 - Mode Control No. 2 */
             this.register01=dataByte;
+
+            /*D4 - (M1) Selects 224-line screen for Mode 4 if M2=1, else has no effect.
+              D3 - (M3) Selects 240-line screen for Mode 4 if M2=1, else has no effect.*/
+
+            if (this.register00&0x02)
+            {
+                if (this.register01&0x08) console.log("VDP::240-line screen");
+                else if (this.register01&0x10) console.log("VDP::224-line screen");
+            }
+
             //console.log("VDP::M1="+(((this.register01&0x10)!=0)?1:0));
             //console.log("VDP::M3="+(((this.register01&0x08)!=0)?1:0));
         }
@@ -275,6 +285,11 @@ class smsVDP
         if (p==0x7e)
         {
             return this.vcounter;
+        }
+        else if (p==0x7f)
+        {
+            console.log("VDP::warning, rom reads hcounter");
+            return this.hcounter;
         }
 
         return 0;
@@ -608,7 +623,7 @@ class smsVDP
             }
 
             // frame interrupt
-            if (this.currentScanlineIndex==193)
+            if ((this.currentScanlineIndex==193)&&(this.statusFlags&0x80))
             {
                 if (this.register01&0x20)
                 {
@@ -656,7 +671,7 @@ class smsVDP
         h = Horizontal flip flag.
         n = Pattern index, any one of 512 patterns in VRAM can be selected.    
     */
-
+/*
     drawScreen(ctx)
     {
         // check for blanked display
@@ -701,7 +716,7 @@ class smsVDP
             for (var x=0;x<32;x++)
             {
                 var word;
-                if ((this.register00&0x40)&&((y==0)||(y==1))) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+                if ((this.register00&0x40)&&((y==0)||(y==1))) // D6 - 1= Disable horizontal scrolling for rows 0-1 
                 {
                     word=screenMap[((x)%32)+(((y+initialRow)%28)*32)];
                     finescrollx=0;
@@ -781,6 +796,7 @@ class smsVDP
             }
         }
     }
+*/
 
     // scanline renderer
     drawScanline(scanlineNum)

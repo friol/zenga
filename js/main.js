@@ -22,7 +22,7 @@ var glbBpLine=0;
 var glbBreakpoint=-1;
 const numDebuggerLines=20;
 
-var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running
+var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running, 2 paused
 var glbVideoctx;
 var glbMaxSpeed=false;
 var glbScheduleInterval=13;
@@ -119,19 +119,21 @@ function drawFFWDIcon()
     //ctx.fillText("ffwd",10,180);        
 }
 
+function drawPauseIcon()
+{
+    var cnvs = document.getElementById("smsdisplay");
+    var ctx = cnvs.getContext("2d", { willReadFrequently: true });
+
+    ctx.font='10px arial';
+    ctx.fillStyle = 'white';
+    ctx.textBaseline = 'top';
+
+    ctx.fillText("||",2,180);        
+}
+
 function emulate()
 {
     const smsFps=59.922743;
-
-    // calc fps
-    const filterStrength = 20;
-    var thisFrameTime = (thisLoop=new Date) - lastLoop;
-    frameTime+= (thisFrameTime - frameTime) / filterStrength;
-    lastLoop = thisLoop;
-
-    var fpsOut = document.getElementById('fpsSpan');
-    var fpeez=(1000/frameTime).toFixed(1);
-    fpsOut.innerHTML = "going at " + fpeez + " fps";
 
     if (glbEmulatorStatus==1)
     {
@@ -156,23 +158,35 @@ function emulate()
             emulatedCycles+=cyc;
         }
     }
+    else if (glbEmulatorStatus==2)
+    {
+        drawScreen();
+        drawPauseIcon();
+    }
 
     if (glbMaxSpeed) drawFFWDIcon();
 
+    // calc fps
+    const filterStrength = 20;
+    var thisFrameTime = (thisLoop=new Date) - lastLoop;
+    frameTime+= (thisFrameTime - frameTime) / filterStrength;
+    lastLoop = thisLoop;
+
+    var fpsOut = document.getElementById('fpsSpan');
+    var fpeez=(1000/frameTime).toFixed(1);
+    fpsOut.innerHTML = "going at " + fpeez + " fps";
+
     if (!glbMaxSpeed)
     {
-        if (glbCPU.totCycles>1000000)
+        if (fpeez<smsFps)
         {
-            if (fpeez<smsFps)
-            {
-                // accelerate!
-                if (glbScheduleInterval>1) glbScheduleInterval--;
-            }
-            else if (fpeez>smsFps)
-            {
-                // brake!!!
-                glbScheduleInterval++;
-            }
+            // accelerate!
+            if (glbScheduleInterval>1) glbScheduleInterval--;
+        }
+        else if (fpeez>smsFps)
+        {
+            // brake!!!
+            glbScheduleInterval++;
         }
     }
 
@@ -420,6 +434,16 @@ window.onload = (event) =>
         else*/ if (e.key=="\\")
         {
             glbMaxSpeed=true;
+        }
+        else if (e.key=="p")
+        {
+            // emulation is paused/resumed
+            if (glbEmulatorStatus==1) glbEmulatorStatus=2;
+            else if (glbEmulatorStatus==2) glbEmulatorStatus=1;
+        }
+        else if (e.key=="o")
+        {
+            glbCPU.raiseNMI();
         }
         else if (e.key=="z") { glbMMU.pressButton1(); }
         else if (e.key=="x") { glbMMU.pressButton2(); }

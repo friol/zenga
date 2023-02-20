@@ -40,7 +40,7 @@ class z80cpu
         { 
             a: 0, b: 0, c: 0, d: 0, e: 0, h: 0, l: 0, f: 0, 
             ixh: 0, ixl: 0, iyh: 0, iyl: 0,
-            pc: 0, sp: 0xdff0, r: 0, i:0
+            pc: 0, sp: 0xdff0, r: 0, i:0, iff1: 0, iff2: 0
         };
     
         this.shadowRegisters = 
@@ -50,6 +50,7 @@ class z80cpu
 
         this.maskableInterruptsEnabled = false;
         this.maskableInterruptWaiting = false;        
+        this.NMIWaiting = false;        
         this.interruptMode = 0;
         this.isHalted=false;
 
@@ -122,6 +123,11 @@ class z80cpu
         {
             this.maskableInterruptWaiting=true;
         }
+    }
+
+    raiseNMI()
+    {
+        this.NMIWaiting=true;
     }
 
     buildParityLookUp()
@@ -664,60 +670,7 @@ class z80cpu
 
 		return newValue;	
 	}
-/*
-    rl_8bit(v) 
-    {
-		let bit7Set = (v & 0x80) > 0;
 
-		let newValue = (v << 1) & 0xff;
-		if (this.registers.f & z80flags.FLAG_C) 
-        {
-			newValue |= 0x01;
-		}
-
-		// Reset the flags.
-		this.registers.f = 0x00;
-
-		// C: Set if bit 7 of the input is set.
-		if (bit7Set) 
-        {
-			this.registers.f |= z80flags.FLAG_C;
-		}
-
-		// N: Reset.
-
-		// P/V: Set if new value has even number of set bits.
-		if (this.parityLookUp[newValue]) 
-        {
-			this.registers.f |= z80flags.FLAG_PV;
-		}
-
-		// F3: Set if bit 3 of the result is set.
-		if (newValue & 0x08) 
-        {
-			this.registers.f |= z80flags.FLAG_F3;
-		}
-
-		// H: Reset.
-
-		// F5: Set if bit 5 of the test byte is set.
-		if (newValue & 0x20) {
-			this.registers.f |= z80flags.FLAG_F5;
-		}
-
-		// Z: Set if the value is zero.
-		if (newValue == 0) {
-			this.registers.f |= z80flags.FLAG_Z;
-		}
-
-		// S: Set if the twos-compliment value is negative.
-		if (newValue & 0x80) {
-			this.registers.f |= z80flags.FLAG_S;
-		}
-
-		return newValue;	
-	}
-*/
     rrc_8bit(v,isA=false) 
     {
 		let bit0Set = (v & 0x01) > 0;
@@ -3319,7 +3272,7 @@ class z80cpu
             }
         }, "JP P,%d", 10, 2, false];
     
-        this.unprefixedOpcodes[0xf3]=[function() { self.maskableInterruptsEnabled = false; self.incPc(1); },"DI", 4, 0, false];
+        this.unprefixedOpcodes[0xf3]=[function() { self.registers.iff1=0; self.registers.iff2=0; self.maskableInterruptsEnabled = false; self.incPc(1); },"DI", 4, 0, false];
 
         this.unprefixedOpcodes[0xf4]=[function()
         {
@@ -3386,7 +3339,7 @@ class z80cpu
             }
         }, "JP M,%d", 10, 2, false];
     
-        this.unprefixedOpcodes[0xfb]=[function() { self.maskableInterruptsEnabled = true; self.incPc(1); }, "EI", 4, 0, false];
+        this.unprefixedOpcodes[0xfb]=[function() { self.registers.iff1=1; self.registers.iff2=1; self.maskableInterruptsEnabled = true; self.incPc(1); }, "EI", 4, 0, false];
 
         this.unprefixedOpcodes[0xfc]=[function()
         {
@@ -3470,6 +3423,12 @@ class z80cpu
             self.incPc(2);
         }, "NEG", 8, 0, false];
 
+        this.prefixedOpcodes[0x45]=[function()
+        {
+            self.registers.pc=self.popWord();
+            self.registers.iff1=self.registers.iff2;
+        }, "RETN", 14, 0, false];
+    
         this.prefixedOpcodes[0x47]=[function()
         {
             // TODO check flags
@@ -3503,6 +3462,7 @@ class z80cpu
         this.prefixedOpcodes[0x4d]=[function()
         {
             self.registers.pc=self.popWord();
+            self.registers.iff1=self.registers.iff2;
         }, "RETI", 14, 0, false];
             
         this.prefixedOpcodes[0x51]=[function()
@@ -3546,12 +3506,11 @@ class z80cpu
             if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
             else self.registers.f&=~z80flags.FLAG_Z;
 
-/*
-            ToggleXYFlagsFromResult(value);
+            //ToggleXYFlagsFromResult(value);
 
-            if (m_bIFF2) ToggleFlag(FLAG_PARITY);
-            else ClearFlag(FLAG_PARITY);
-*/
+            if (self.registers.iff2) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
+
             self.incPc(2);
         }, "LD A,I", 9, 0, false];
     
@@ -3596,6 +3555,9 @@ class z80cpu
             else self.registers.f&=~z80flags.FLAG_S;
             if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
             else self.registers.f&=~z80flags.FLAG_Z;
+
+            if (self.registers.iff2) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
 
             self.incPc(2);
         }, "LD A,R", 9, 2, false];
@@ -3842,6 +3804,14 @@ class z80cpu
             self.incPc(2); 
         }, "RR L", 8, 0, false];
 
+        this.prefixcbOpcodes[0x1e]=[function() 
+        {
+            const hl=self.registers.l|(self.registers.h<<8);
+            const content=self.theMMU.readAddr(hl);
+            self.theMMU.writeAddr(hl,self.rr_8bit(content)); 
+            self.incPc(2); 
+        }, "RR (HL)", 15, 0, false];
+    
         this.prefixcbOpcodes[0x1f]=[function() 
         {
             self.registers.a = self.rr_8bit(self.registers.a); 
@@ -4336,6 +4306,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 4,C", 8, 0, false];
 
+        this.prefixcbOpcodes[0xa3]=[function()
+        {
+            self.registers.e&=~0x10;
+            self.incPc(2); 
+        }, "RES 4,E", 8, 0, false];
+    
         this.prefixcbOpcodes[0xa4]=[function()
         {
             self.registers.h&=~0x10;
@@ -5582,7 +5558,16 @@ class z80cpu
             self.theMMU.writeAddr16bit(addr,ix);
             self.incPc(4); 
         }, "LD (%d),IX", 20, 2, false];
-    
+
+        this.prefixddOpcodes[0x23]=[function() 
+        {
+            var ix=self.registers.ixl|(self.registers.ixh<<8); 
+            ix+=1; ix&=0xffff;
+            self.registers.ixh=ix>>8;
+            self.registers.ixl=ix&0xff;
+            self.incPc(2); 
+        }, "INC IX", 10, 0, false];
+            
         this.prefixddOpcodes[0x24]=[function() 
         {
             self.registers.ixh=self.inc_8bit(self.registers.ixh);
@@ -5601,7 +5586,16 @@ class z80cpu
             self.registers.ixh=m1;
             self.incPc(3); 
         }, "LD IXH,%d", 11, 1, true];
-    
+
+        this.prefixddOpcodes[0x29]=[function() 
+        {
+            var ix=self.registers.ixl|(self.registers.ixh<<8);
+            var res=self.add_16bit(ix,ix);
+            self.registers.ixl=res&0xff;
+            self.registers.ixh=res>>8;
+            self.incPc(2); 
+        }, "ADD IX,IX", 15, 0, false];
+            
         this.prefixddOpcodes[0x2a]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
@@ -5612,15 +5606,6 @@ class z80cpu
             self.incPc(4); 
         }, "LD IX,(%d)", 20, 2, false];
     
-        this.prefixddOpcodes[0x23]=[function() 
-        {
-            var ix=self.registers.ixl|(self.registers.ixh<<8); 
-            ix+=1; ix&=0xffff;
-            self.registers.ixh=ix>>8;
-            self.registers.ixl=ix&0xff;
-            self.incPc(2); 
-        }, "INC IX", 10, 0, false];
-
         this.prefixddOpcodes[0x2b]=[function() 
         {
             var ix=self.registers.ixl|(self.registers.ixh<<8); 
@@ -7377,8 +7362,18 @@ class z80cpu
         var elapsedCycles=0;
         this.additionalCycles=0;
 
-        if (this.maskableInterruptWaiting)
+        if (this.NMIWaiting)
         {
+            elapsedCycles+=11;
+            this.registers.iff1=0;
+            this.NMIWaiting=false;
+            this.pushWord(this.registers.pc);
+            this.registers.pc = 0x0066;
+        }
+        else if ((this.registers.iff1!=0)&&(this.maskableInterruptWaiting))
+        {
+            this.registers.iff1=0;
+            this.registers.iff2=0;
             this.maskableInterruptWaiting = false;
             this.maskableInterruptsEnabled = false;
             this.pushWord(this.registers.pc);
