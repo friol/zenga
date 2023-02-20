@@ -173,14 +173,15 @@ class smsVDP
         {
 			this.controlWord=b;
 			this.controlWordFlag=true;
-            this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
+            //this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
 		} 
         else 
         {
-			this.controlWord=(this.controlWord&0xff) | ((b&0x3f)<<8);
+			//this.controlWord=(this.controlWord&0xff) | ((b&0x3f)<<8);
+			this.controlWord|=(b<<8);
 			this.controlWordFlag=false;
 
-			let controlCode=(b>>6)&3;
+			let controlCode=(this.controlWord & 0xc000) >> 14; //(b>>6)&3;
 			this.dataPortReadWriteAddress=(this.controlWord&0x3fff);        
 
             //console.log("VDP::word written to control port, controlCode "+controlCode.toString(16)+" address "+this.dataPortReadWriteAddress.toString(16));
@@ -189,7 +190,7 @@ class smsVDP
             {
                 this.dataPortWriteMode = vdpDataPortWriteMode.toVRAM;
 
-				this.readBufferByte = this.vRam[this.dataPortReadWriteAddress&0x3fff]&0xff;
+				this.readBufferByte = this.vRam[this.dataPortReadWriteAddress&0x3fff];
 
 				this.dataPortReadWriteAddress++;
 				this.dataPortReadWriteAddress &= 0x3fff;                
@@ -484,7 +485,7 @@ class smsVDP
             }
         }
     }
-
+/*
     drawSprite(addr,spriteX,spriteY)    
     {
         addr+=this.spritePatternGeneratorBaseAddress;
@@ -528,6 +529,7 @@ class smsVDP
             addr+=4;
         }        
     }
+*/
 
     debugTiles(ctx,x,y)
     {
@@ -599,7 +601,8 @@ class smsVDP
             if (this.currentScanlineIndex <= 192) 
             {
                 this.lineCounter--;
-                this.lineCounter &= 0xff;
+                if (this.lineCounter<0) this.lineCounter=0xff;
+                this.lineCounter&=0xff;
     
                 // Check if the counter has underflowed.
                 if (this.lineCounter == 0xff) 
@@ -644,7 +647,7 @@ class smsVDP
 
             if (this.currentScanlineIndex==0)
             {
-                this.drawScanline(262);
+                //this.drawScanline(262);
                 return true;
             }
             else

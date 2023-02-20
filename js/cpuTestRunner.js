@@ -78,6 +78,9 @@ class cpuTestRunner
                 this.theCpu.shadowRegisters.l=this.testJsonObject[testCaseNum].initial.hl_&0xff;
                 this.theCpu.registers.r=this.testJsonObject[testCaseNum].initial.r;
                 this.theCpu.registers.i=this.testJsonObject[testCaseNum].initial.i;
+                
+                this.theCpu.registers.iff1=this.testJsonObject[testCaseNum].initial.iff1;
+                this.theCpu.registers.iff2=this.testJsonObject[testCaseNum].initial.iff2;
 
                 this.theCpu.registers.ixl=this.testJsonObject[testCaseNum].initial.ix&0xff;
                 this.theCpu.registers.ixh=this.testJsonObject[testCaseNum].initial.ix>>8;

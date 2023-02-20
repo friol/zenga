@@ -3501,9 +3501,9 @@ class z80cpu
             self.registers.f&=~z80flags.FLAG_N;
             self.registers.f&=~z80flags.FLAG_H;
 
-            if ((self.registers.b & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            if ((self.registers.a & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;
-            if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
+            if (self.registers.a == 0) self.registers.f|=z80flags.FLAG_Z;
             else self.registers.f&=~z80flags.FLAG_Z;
 
             //ToggleXYFlagsFromResult(value);
@@ -3545,15 +3545,16 @@ class z80cpu
 
         this.prefixedOpcodes[0x5f]=[function()
         {
-            // TODO better flags
+            // TODO check 20 cases jsmoo tests & flags
             self.registers.r+=2;
+            self.registers.r&=0xff;
             self.registers.a=self.registers.r;
             self.registers.f&=~z80flags.FLAG_N;
             self.registers.f&=~z80flags.FLAG_H;
 
-            if ((self.registers.b & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            if ((self.registers.a & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;
-            if (self.registers.b == 0) self.registers.f|=z80flags.FLAG_Z;
+            if (self.registers.a == 0) self.registers.f|=z80flags.FLAG_Z;
             else self.registers.f&=~z80flags.FLAG_Z;
 
             if (self.registers.iff2) self.registers.f|=z80flags.FLAG_PV;
@@ -3615,8 +3616,26 @@ class z80cpu
         }, "LD (%d),SP", 20, 2, false];
     
         this.prefixedOpcodes[0x78]=[function() 
-        { 
+        {
+            // TODO: understand flags
             self.registers.a=self.theMMU.readPort(self.registers.c);
+
+            //IsSetFlag(FLAG_CARRY) ? SetFlag(FLAG_CARRY) : ClearAllFlags();
+
+            if (!(self.registers.f&z80flags.FLAG_C))
+            {
+                self.registers.f=0x00;
+            }
+
+            if ((self.registers.a & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.a == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+            if (self.parityLookUp[self.registers.a]) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
+
+            //ToggleXYFlagsFromResult(result);
+
             self.incPc(2);
         }, "IN A,(C)", 12, 0, true];
 
@@ -5057,7 +5076,13 @@ class z80cpu
 
             self.incPc(3); 
         }, "LD B,(IY+%d)", 19, 1, false];
-    
+
+        this.prefixfdOpcodes[0x4d]=[function() 
+        {
+            self.registers.c=self.registers.iyl;
+            self.incPc(2); 
+        }, "LD C,IYL", 8, 0, true];
+            
         this.prefixfdOpcodes[0x4e]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);

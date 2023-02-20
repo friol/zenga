@@ -275,7 +275,7 @@ function runCPUTests(t)
         for (var o=0;o<refCPU.unprefixedOpcodes.length;o++)
         //var o=0x17;
         {
-            if ((refCPU.unprefixedOpcodes[o]!=undefined)&&(o!=0xdb))
+            if (refCPU.unprefixedOpcodes[o]!=undefined)
             {
                 var trunner=new cpuTestRunner("tests/"+o.toString(16).padStart(2,'0')+".json");
             }
@@ -284,9 +284,9 @@ function runCPUTests(t)
     else if (t==0xed)
     {
         for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-        //var o=0xa2;
+        //var o=0x5f;
         {
-            if ((refCPU.prefixedOpcodes[o]!=undefined)&&(o!=0xb3)&&(o!=0x78))
+            if (refCPU.prefixedOpcodes[o]!=undefined)
             {
                 var trunner=new cpuTestRunner("tests/ed "+o.toString(16).padStart(2,'0')+".json");
             }
@@ -401,6 +401,14 @@ function showDebugStuff()
 
 window.onload = (event) => 
 {
+    const queryString = window.location.search;
+    const urlParams = new URLSearchParams(queryString);
+    const isDebug = urlParams.get('debug');
+    if (isDebug!=null)
+    {
+        document.getElementById("debugButtons").style.display="block";
+    }
+
     document.onkeydown = function(e)
 	{
         /*if (e.key=="s")

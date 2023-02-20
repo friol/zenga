@@ -34,8 +34,8 @@
         <div id="taglineDiv">z, x and arrows to play, \ to ffwd, p to pause, and o to pause as on the SMS<br/>
         <button id="fsbutton" onclick="fullscreen();" style="display: none;">Fullscreen!</button></div>
         
-        <br/><br/>
-        <div id="debugButtons">
+        <div id="debugButtons" style="display: none;">
+            <br/><br/>
             <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
             <button onclick="runCPUTests(0xcb);">Test 0xCB opcodes!</button>
             <button onclick="runCPUTests(0xdd);">Test 0xDD opcodes!</button>
@@ -47,7 +47,6 @@
             <input type="text" id="bpaddress" name="bpaddress" value="453">
             <button onclick="gotoAddress();">Goto address</button>
         </div>
-        
 
     </body>
 </html>
