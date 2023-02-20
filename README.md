@@ -4,7 +4,7 @@
 I grew up with 80s and 90s suggestions, in Italy.<br/><br/>
 The biggest mediatic event of that era was the 1990 football world cup, that was taking place (obviously) in Italy. Despite the expectations, we finished third, and **Walter Zenga** was our great (or not so great) goalkeeper. Nonetheless, he used his popularity to become a testimonial for the Sega Master System console, and Megadrive/Genesis after that, starring in some TV commercials.<br/>
 <br/>
-So, which name is more appropriate for this emulator? None.
+So, which name is more appropriate for this emulator?
 <br/><br/>
 I used javascript, of course. Javascript is so flexible and accessible that my only regret is to have written dream86 in Rust (damned Internet - x86 was totally feasible in javascript, and I bet it would have been faster than the Rust result).
 <br/>
