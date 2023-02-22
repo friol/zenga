@@ -104,7 +104,8 @@ class cpuTestRunner
                 // compare registers with test case's
                 if (this.theCpu.registers.a!=this.testJsonObject[testCaseNum].final.a)
                 {
-                    console.log("testRunner::a is different from test case - initial a: ["+
+                    console.log("testRunner::a is wrong tc. "+this.testJsonObject[testCaseNum].name+
+                    " - initial a: ["+
                     this.testJsonObject[testCaseNum].initial.a.toString(16)+"] emulated a: ["+
                     this.theCpu.registers.a.toString(16)+"] test final a ["+
                     this.testJsonObject[testCaseNum].final.a.toString(16)+"]"

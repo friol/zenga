@@ -44,6 +44,7 @@ class smsVDP
 
         this.register00=0;
         this.register01=0;
+        this.register04=0;
         this.register06=0;
         this.register08=0;
         this.register09=0;
@@ -110,7 +111,7 @@ class smsVDP
         else if (registerIndex==4)
         {
             /* Register $04 - Background Pattern Generator Base Address */
-            // this register does nothing, apparently
+            this.register04=dataByte;
         }
         else if (registerIndex==5)
         {
@@ -485,51 +486,6 @@ class smsVDP
             }
         }
     }
-/*
-    drawSprite(addr,spriteX,spriteY)    
-    {
-        addr+=this.spritePatternGeneratorBaseAddress;
-
-        for (var yt=0;yt<8;yt++)
-        {
-            for (var xt=0;xt<8;xt++)
-            {
-                var byte0=this.vRam[addr]
-                var byte1=this.vRam[addr+1]
-                var byte2=this.vRam[addr+2]
-                var byte3=this.vRam[addr+3]
-
-                byte0>>=(7-xt); byte0&=1;
-                byte1>>=(7-xt); byte1&=1;
-                byte2>>=(7-xt); byte2&=1;
-                byte3>>=(7-xt); byte3&=1;
-
-                var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
-                var curbyte=this.colorRam[cramIdx+16];
-
-                if (cramIdx!=0)
-                {
-                    var red=(curbyte&0x03)*64;
-                    var green=((curbyte>>2)&0x03)*64;
-                    var blue=((curbyte>>4)&0x03)*64;
-
-                    const cx=spriteX+xt;
-                    const cy=spriteY+yt;
-
-                    if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.glbResolutionY))
-                    {
-                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+0]=red;
-                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+1]=green;
-                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+2]=blue;
-                        this.glbFrameBuffer[(spriteX+xt+((spriteY+yt)*this.glbResolutionX))*4+3]=255;
-                    }
-                }
-            }
-
-            addr+=4;
-        }        
-    }
-*/
 
     debugTiles(ctx,x,y)
     {
@@ -659,6 +615,34 @@ class smsVDP
         }
     }
 
+    drawScanlineM2Tile(tilenum,x,y)
+    {
+        var tileAddr=/*((this.register04&0x07)<<10)+*/(tilenum*8);
+
+        var realy=y%8;
+        tileAddr+=realy;
+        const curbyte=this.vRam[tileAddr];
+
+        for (var xt=0;xt<8;xt++)
+        {
+            const b=((curbyte>>(7-xt))&0x01);
+            if (b!=0)
+            {
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=100;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=100;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=100;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
+            }
+            else
+            {
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=0;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=0;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=0;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
+            }
+        }
+    }    
+
     /*
         Each word in the name table has the following layout:
 
@@ -674,132 +658,6 @@ class smsVDP
         h = Horizontal flip flag.
         n = Pattern index, any one of 512 patterns in VRAM can be selected.    
     */
-/*
-    drawScreen(ctx)
-    {
-        // check for blanked display
-        // D6 - (BLK) 1= Display visible, 0= display blanked.
-
-        if (!(this.register01&0x40))
-        {
-            // display is blanked
-            for (var i=0;i<(this.glbResolutionX*this.glbResolutionY*4);i+=4)
-            {
-                this.glbFrameBuffer[i]=0;
-                this.glbFrameBuffer[i+1]=0;
-                this.glbFrameBuffer[i+2]=0;
-                this.glbFrameBuffer[i+3]=255;
-            }
-
-            return;
-        }
-
-        // background tiles
-        var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
-
-        var screenMap=Array();
-        for (var y=0;y<28;y++)
-        {
-            for (var x=0;x<32;x++)
-            {
-                var word=this.vRam[nameTableBaseAddress];
-                word|=this.vRam[nameTableBaseAddress+1]<<8;
-                screenMap.push(word);
-                nameTableBaseAddress+=2;             
-            }
-        }
-
-        var initialTile=32-((this.register08)>>3);
-        var finescrollx=this.register08&0x7;
-        var initialRow=Math.floor((this.register09)/8);
-        const finescrolly=-(this.register09%8);
-
-        for (var y=0;y<25;y++)
-        {
-            for (var x=0;x<32;x++)
-            {
-                var word;
-                if ((this.register00&0x40)&&((y==0)||(y==1))) // D6 - 1= Disable horizontal scrolling for rows 0-1 
-                {
-                    word=screenMap[((x)%32)+(((y+initialRow)%28)*32)];
-                    finescrollx=0;
-                }
-                else
-                {
-                    word=screenMap[((x+initialTile)%32)+(((y+initialRow)%28)*32)];
-                }
-
-                const flipH=(word>>9)&0x01;
-                const flipV=(word>>10)&0x01;
-                const pal=(word>>11)&0x01;
-                const priFlag=(word>>12)&0x01;
-
-                this.drawTile(ctx,(word&0x1ff)*32,(x*8)+finescrollx,(y*8)+finescrolly,pal,flipH,flipV);   
-            }
-        }
-
-        // sprites
-        var sat=this.spriteAttributeTableBaseAddress;
-
-        for (var s = 0; s < 64; s++) 
-        {
-			var spriteY=this.vRam[sat+s];
-			if (spriteY == 0xd0)
-            {
-				break;
-			}
-			spriteY++;
-
-            //if (spriteY >= 240) spriteY -= 256;
-
-            var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
-
-            if (this.register00&0x08)
-            {
-                spriteX-=8;
-            }
-
-            var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
-
-            this.drawSprite(spriteIdx*32,spriteX,spriteY);
-
-            // check for 8x16 sprites
-
-            if (this.register00&0x04) // Mode4
-            {
-                if (this.register01&0x02)
-                {
-                    // sprites are 8x16, draw second half
-                    spriteIdx++;
-                    this.drawSprite(spriteIdx*32,spriteX,spriteY+8);
-                }
-            }
-
-        }
-
-        // column 0:  D5 - 1= Mask column 0 with overscan color from register #7
-
-        if (this.register00&0x20)
-        {
-            var oscol=this.colorRam[(this.register07&0x0f)+16];
-            var red=(oscol&0x03)*64;
-            var green=((oscol>>2)&0x03)*64;
-            var blue=((oscol>>4)&0x03)*64;
-
-            for (var y=0;y<this.glbResolutionY;y++)
-            {
-                for (var x=0;x<8;x++)
-                {
-                    const pos=(x+(y*this.glbResolutionX))*4;
-                    this.glbFrameBuffer[pos]=red;
-                    this.glbFrameBuffer[pos+1]=green;
-                    this.glbFrameBuffer[pos+2]=blue;
-                    this.glbFrameBuffer[pos+3]=255;
-                }
-            }
-        }
-    }
-*/
 
     // scanline renderer
     drawScanline(scanlineNum)
@@ -827,53 +685,84 @@ class smsVDP
         }
 
         // background tiles
-
-        var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
-
-        // build the screenmap array (yeah, we do this every time, this can be largely optimized)
-        var screenMap=Array();
-        for (var y=0;y<28;y++)
+        // mode M4
+        if ((this.register00&0x04)!=0)
         {
+            var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+
+            // build the screenmap array (yeah, we do this every time, this can be largely optimized)
+            var screenMap=Array();
+            for (var y=0;y<28;y++)
+            {
+                for (var x=0;x<32;x++)
+                {
+                    var word=this.vRam[nameTableBaseAddress];
+                    word|=this.vRam[nameTableBaseAddress+1]<<8;
+                    screenMap.push(word);
+                    nameTableBaseAddress+=2;             
+                }
+            }
+
+            // find the tile we have to draw and find the y row in this tile 
+            // things get complicated with the finescroll y value, but we'll do it
+
+            var initialTile=32-((this.register08)>>3);
+            var finescrollx=this.register08&0x7;
+            var initialRow=Math.floor((this.register09)/8);
+            const finescrolly=(this.register09%8);
+
+            const yScreenMap=Math.floor(scanlineNum/8);
+            var adder=0;
+            if ((finescrolly+(scanlineNum%8))>=8) adder=1;
+
             for (var x=0;x<32;x++)
             {
-                var word=this.vRam[nameTableBaseAddress];
-                word|=this.vRam[nameTableBaseAddress+1]<<8;
-                screenMap.push(word);
-                nameTableBaseAddress+=2;             
+                var word;
+                if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+                {
+                    word=screenMap[((x)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                    finescrollx=0;
+                }
+                else
+                {
+                    word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                }
+
+                const flipH=(word>>9)&0x01;
+                const flipV=(word>>10)&0x01;
+                const pal=(word>>11)&0x01;
+                const priFlag=(word>>12)&0x01;
+
+                this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly,priFlag);   
             }
         }
-
-        // find the tile we have to draw and find the y row in this tile 
-        // things get complicated with the finescroll y value, but we'll do it
-
-        var initialTile=32-((this.register08)>>3);
-        var finescrollx=this.register08&0x7;
-        var initialRow=Math.floor((this.register09)/8);
-        const finescrolly=(this.register09%8);
-
-        const yScreenMap=Math.floor(scanlineNum/8);
-        var adder=0;
-        if ((finescrolly+(scanlineNum%8))>=8) adder=1;
-
-        for (var x=0;x<32;x++)
+        else
         {
-            var word;
-            if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+            // mode M2=1
+            var nameTableBaseAddress=(this.nameTableBaseAddress&0x0f)<<10;
+
+            var screenMap=Array();
+            for (var y=0;y<24;y++)
             {
-                word=screenMap[((x)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
-                finescrollx=0;
-            }
-            else
-            {
-                word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                for (var x=0;x<32;x++)
+                {
+                    var byte=this.vRam[nameTableBaseAddress];
+
+                    if ((y>=8)&&(y<16)) byte+=0x100;
+                    else if (y>=16) byte+=0x200;
+
+                    screenMap.push(byte);
+                    nameTableBaseAddress+=1;             
+                }
             }
 
-            const flipH=(word>>9)&0x01;
-            const flipV=(word>>10)&0x01;
-            const pal=(word>>11)&0x01;
-            const priFlag=(word>>12)&0x01;
+            const yScreenMap=Math.floor(scanlineNum/8);
 
-            this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly,priFlag);   
+            for (var x=0;x<32;x++)
+            {
+                const char=screenMap[x+(((yScreenMap)%24)*32)];
+                this.drawScanlineM2Tile(char,(x*8),scanlineNum);   
+            }
         }
 
         // sprites

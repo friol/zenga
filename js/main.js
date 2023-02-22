@@ -284,7 +284,7 @@ function runCPUTests(t)
     else if (t==0xed)
     {
         for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-        //var o=0x5f;
+        //var o=0xb3;
         {
             if (refCPU.prefixedOpcodes[o]!=undefined)
             {
