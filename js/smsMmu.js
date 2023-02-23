@@ -201,7 +201,7 @@ class smsMmu
 		// Check bit 2: RAM bank select.
 		if ((byte & 0x04) > 0) 
         {
-			throw 'Unimplemented RAM bank select.';
+			//throw 'Unimplemented RAM bank select.';
 		}
 
 		// Check bit 3: System RAM override.

@@ -163,6 +163,10 @@ function emulate()
         drawScreen();
         drawPauseIcon();
     }
+    else if (glbEmulatorStatus==0)
+    {
+        drawScreen();
+    }
 
     if (glbMaxSpeed) drawFFWDIcon();
 
@@ -382,7 +386,7 @@ function fullscreenchanged(event)
 
 function hideDebugStuff()
 {
-    //document.getElementById("debugCanvas").style.display="none";
+    document.getElementById("debugCanvas").style.display="none";
     //document.getElementById("debugButtons").style.display="none";
     document.getElementById("smsdisplay").style.width="768px";
     document.getElementById("smsdisplay").style.height="576px";
@@ -411,7 +415,7 @@ window.onload = (event) =>
 
     document.onkeydown = function(e)
 	{
-        /*if (e.key=="s")
+        if (e.key=="s")
         {
             showDebugStuff();
             glbEmulatorStatus=0;
@@ -426,7 +430,7 @@ window.onload = (event) =>
             {
                 var cyc=glbCPU.executeOne();
                 glbVDP.update(glbCPU,cyc);
-                if (glbCPU.maskableInterruptWaiting)
+                if ((glbCPU.maskableInterruptWaiting)/*||(glbCPU.registers.pc==0x04d7)*/)
                 {
                     goout=true;
                 }
@@ -439,7 +443,7 @@ window.onload = (event) =>
             hideDebugStuff();
             glbEmulatorStatus=1;
         }
-        else*/ if (e.key=="\\")
+        else if (e.key=="\\")
         {
             glbMaxSpeed=true;
         }

@@ -44,6 +44,7 @@ class smsVDP
 
         this.register00=0;
         this.register01=0;
+        this.register03=0;
         this.register04=0;
         this.register06=0;
         this.register08=0;
@@ -106,7 +107,7 @@ class smsVDP
         else if (registerIndex==3)
         {
             /* Register $03 - Color Table Base Address */
-            // this register does nothing, apparently
+            this.register03=dataByte;
         }
         else if (registerIndex==4)
         {
@@ -582,7 +583,7 @@ class smsVDP
             }
 
             // frame interrupt
-            if ((this.currentScanlineIndex==193)&&(this.statusFlags&0x80))
+            if ((this.currentScanlineIndex==193)/*&&(this.statusFlags&0x80)*/)
             {
                 if (this.register01&0x20)
                 {
@@ -617,27 +618,53 @@ class smsVDP
 
     drawScanlineM2Tile(tilenum,x,y)
     {
+        const sg1000palette=[
+            0,0,0, 
+            0,0,0, 
+            33,200,66, 
+            94,220,120, 
+            84,85,237, 
+            125,118,252, 
+            212,82,77, 
+            66,235,245, 
+            252,85,84, 
+            255,121,120, 
+            212,193,84, 
+            230,206,128, 
+            33,176,59, 
+            201,91,186, 
+            204,204,204, 
+            255,255,255];
+
         var tileAddr=/*((this.register04&0x07)<<10)+*/(tilenum*8);
+        var color_table_addr = (this.register03&0x80) << 6;
 
         var realy=y%8;
         tileAddr+=realy;
         const curbyte=this.vRam[tileAddr];
 
+        var color_line = this.vRam[color_table_addr+tileAddr+realy];
+        const bg_color = color_line & 0x0F;
+        const fg_color = color_line >> 4;
+        const backdrop_color = this.register07 & 0x0F;
+
         for (var xt=0;xt<8;xt++)
         {
             const b=((curbyte>>(7-xt))&0x01);
+            const final_color=(b==1)?fg_color:bg_color;
+
             if (b!=0)
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=100;
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=100;
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=100;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=sg1000palette[final_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=sg1000palette[final_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=sg1000palette[final_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
             else
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=0;
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=0;
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=0;
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=sg1000palette[backdrop_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=sg1000palette[backdrop_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=sg1000palette[backdrop_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
         }
