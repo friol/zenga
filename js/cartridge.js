@@ -81,12 +81,24 @@ class cartridge
             this.cartridgeRom.push(uint8ArrayNew[b]);
         }
 
-        // check for header
         if (this.cartridgeSize<(32*1024))
         {
             console.log("Cartridge::Error: cartridge of size < 32k");
         }
 
+        // f*ing 512 bytes header?
+		if (this.cartridgeRom.length % 0x4000 == 512) 
+        {
+			let tempRomBytes = [];
+			for (let i = 512; i < this.cartridgeRom.length; i++) 
+            {
+				tempRomBytes.push(this.cartridgeRom[i]);
+			}
+
+			this.cartridgeRom = tempRomBytes;
+		}
+
+        // check for header
         var header=new Array();
         for (var b=0;b<16;b++)
         {

@@ -638,15 +638,14 @@ class smsVDP
 
     drawScanlineM2Tile(tilenum,x,y)
     {
-
-        var tileAddr=/*((this.register04&0x07)<<10)+*/(tilenum*8);
+        var tileAddr=(tilenum*8);
         var color_table_addr = (this.register03&0x80) << 6;
 
         var realy=y%8;
         tileAddr+=realy;
         const curbyte=this.vRam[tileAddr];
 
-        var color_line = this.vRam[color_table_addr+tileAddr+realy];
+        var color_line = this.vRam[color_table_addr+tileAddr];
         const bg_color = color_line & 0x0F;
         const fg_color = color_line >> 4;
         const backdrop_color = this.register07 & 0x0F;
@@ -658,16 +657,16 @@ class smsVDP
 
             if (b!=0)
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[final_color*3];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[final_color*3+1];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[final_color*3+2];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[fg_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[fg_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[fg_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
             else
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[backdrop_color*3];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[backdrop_color*3+1];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[backdrop_color*3+2];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[bg_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[bg_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[bg_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
         }
