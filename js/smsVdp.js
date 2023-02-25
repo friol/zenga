@@ -46,6 +46,7 @@ class smsVDP
         this.register01=0;
         this.register03=0;
         this.register04=0;
+        this.register05=0;
         this.register06=0;
         this.register08=0;
         this.register09=0;
@@ -57,6 +58,24 @@ class smsVDP
 
         this.glbFrameBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY*4);
         this.priBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY);
+
+        this.sg1000palette=[
+            0,0,0, 
+            0,0,0, 
+            33,200,66, 
+            94,220,120, 
+            84,85,237, 
+            125,118,252, 
+            212,82,77, 
+            66,235,245, 
+            252,85,84, 
+            255,121,120, 
+            212,193,84, 
+            230,206,128, 
+            33,176,59, 
+            201,91,186, 
+            204,204,204, 
+            255,255,255];
 
         this.glbImgData=undefined;
         this.glbCanvasRenderer=undefined;
@@ -77,10 +96,10 @@ class smsVDP
             }
 
             //D4 - (IE1) 1= Line interrupt enable
-            if (this.register00&0x10)
+            /*if (this.register00&0x10)
             {
                 console.log("VDP::warning: line interrupt enabled");
-            }
+            }*/
         }
         else if (registerIndex==1)
         {
@@ -118,6 +137,7 @@ class smsVDP
         {
             /*  Register $05 - Sprite attribute Table Base Address */
             this.spriteAttributeTableBaseAddress = (dataByte & 0x7e) << 7;
+            this.register05=dataByte;
         }
         else if (registerIndex==6)
         {
@@ -618,23 +638,6 @@ class smsVDP
 
     drawScanlineM2Tile(tilenum,x,y)
     {
-        const sg1000palette=[
-            0,0,0, 
-            0,0,0, 
-            33,200,66, 
-            94,220,120, 
-            84,85,237, 
-            125,118,252, 
-            212,82,77, 
-            66,235,245, 
-            252,85,84, 
-            255,121,120, 
-            212,193,84, 
-            230,206,128, 
-            33,176,59, 
-            201,91,186, 
-            204,204,204, 
-            255,255,255];
 
         var tileAddr=/*((this.register04&0x07)<<10)+*/(tilenum*8);
         var color_table_addr = (this.register03&0x80) << 6;
@@ -655,20 +658,98 @@ class smsVDP
 
             if (b!=0)
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=sg1000palette[final_color*3];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=sg1000palette[final_color*3+1];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=sg1000palette[final_color*3+2];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[final_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[final_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[final_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
             else
             {
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=sg1000palette[backdrop_color*3];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=sg1000palette[backdrop_color*3+1];
-                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=sg1000palette[backdrop_color*3+2];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=this.sg1000palette[backdrop_color*3];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=this.sg1000palette[backdrop_color*3+1];
+                this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+2]=this.sg1000palette[backdrop_color*3+2];
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+3]=255;
             }
         }
     }    
+
+    drawSpritesM2Scanline(scanlineNum)
+    {
+        const sprite_attribute_addr = (this.register05 & 0x7F) << 7;
+        const sprite_size = ((this.register01&0x02)!=0) ? 16 : 8;
+        const sprite_pattern_addr = (this.register06 & 0x07) << 11;
+        const sprite_zoom=false;
+
+        var max_sprite = 31;
+
+        for (var sprite = 0; sprite <= max_sprite; sprite++)
+        {
+            if (this.vRam[sprite_attribute_addr + (sprite << 2)] == 0xD0)
+            {
+                max_sprite = sprite - 1;
+                break;
+            }
+        }
+
+        for (var sprite = 0; sprite <= max_sprite; sprite++)
+        {
+            var sprite_attribute_offset = sprite_attribute_addr + (sprite << 2);
+            var sprite_y = (this.vRam[sprite_attribute_offset] + 1) & 0xFF;
+
+            if (sprite_y >= 0xE0)
+                sprite_y = -(0x100 - sprite_y);
+
+            if ((sprite_y > scanlineNum) || ((sprite_y + sprite_size) <= scanlineNum))
+                continue;
+
+            var sprite_color = this.vRam[sprite_attribute_offset + 3] & 0x0F;
+
+            if (sprite_color == 0)
+                continue;
+
+            var sprite_shift = (this.vRam[sprite_attribute_offset + 3] & 0x80) ? 32 : 0;
+            var sprite_x = this.vRam[sprite_attribute_offset + 1] - sprite_shift;
+
+            if (sprite_x >= this.glbResolutionX)
+                continue;
+
+            var sprite_tile = this.vRam[sprite_attribute_offset + 2];
+            sprite_tile &= ((this.register01&0x02)!=0) ? 0xFC : 0xFF;
+
+            var sprite_line_addr = sprite_pattern_addr + (sprite_tile << 3) + ((scanlineNum - sprite_y ) >> (sprite_zoom ? 1 : 0));
+
+            for (var tile_x = 0; tile_x < sprite_size; tile_x++)
+            {
+                var sprite_pixel_x = sprite_x + tile_x;
+                if (sprite_pixel_x >= this.glbResolutionX)
+                    break;
+                if (sprite_pixel_x < 0)
+                    continue;
+
+                var sprite_pixel = false;
+
+                var tile_x_adjusted = tile_x >> (sprite_zoom ? 1 : 0);
+
+                if (tile_x_adjusted < 8)
+                {
+                    sprite_pixel = ((this.vRam[sprite_line_addr]&(1<<(7 - tile_x_adjusted)))==0)?false:true;
+                }
+                else
+                {
+                    sprite_pixel = ((this.vRam[sprite_line_addr + 16]&(1<<(15 - tile_x_adjusted)))==0)?false:true;
+                }
+
+                if (sprite_pixel)
+                {
+                    var fbY=(scanlineNum*this.glbResolutionX*4)+(sprite_pixel_x*4);
+                    this.glbFrameBuffer[fbY+0]=this.sg1000palette[sprite_color*3];
+                    this.glbFrameBuffer[fbY+1]=this.sg1000palette[sprite_color*3+1];
+                    this.glbFrameBuffer[fbY+2]=this.sg1000palette[sprite_color*3+2];
+                    this.glbFrameBuffer[fbY+3]=255;
+                }
+            }
+        }
+    }
 
     /*
         Each word in the name table has the following layout:
@@ -793,50 +874,59 @@ class smsVDP
         }
 
         // sprites
-        var sat=this.spriteAttributeTableBaseAddress;
-
-        for (var s = 0; s < 64; s++) 
+        // mode M4
+        if ((this.register00&0x04)!=0)
         {
-			var spriteY=this.vRam[sat+s];
-			if (spriteY == 0xd0)
+            var sat=this.spriteAttributeTableBaseAddress;
+
+            for (var s = 0; s < 64; s++) 
             {
-				break;
-			}
-			spriteY++;
-
-            if (spriteY>0xd0)
-            {
-				spriteY -= 0x100;
-			}
-
-            var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
-
-            if (this.register00&0x08)
-            {
-                spriteX-=8;
-            }
-
-            var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
-
-            var spritesAre8x16=false;
-            if ((this.register00&0x04)&&(this.register01&0x02)) spritesAre8x16=true;
-
-            if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
-            {
-                this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY);
-            }
-
-            // check for 8x16 sprites
-
-            if (spritesAre8x16)
-            {
-                // sprites are 8x16, draw second half
-                spriteIdx++;
-                if ((scanlineNum>=(spriteY+8))&&(scanlineNum<(spriteY+16)))
+                var spriteY=this.vRam[sat+s];
+                if (spriteY == 0xd0)
                 {
-                    this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
+                    break;
+                }
+                spriteY++;
+
+                if (spriteY>0xd0)
+                {
+                    spriteY -= 0x100;
+                }
+
+                var spriteX=this.vRam[sat + (s*2) +(0x10*0x8)];
+
+                if (this.register00&0x08)
+                {
+                    spriteX-=8;
+                }
+
+                var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
+
+                var spritesAre8x16=false;
+                if ((this.register00&0x04)&&(this.register01&0x02)) spritesAre8x16=true;
+
+                if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
+                {
+                    this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY);
+                }
+
+                // check for 8x16 sprites
+
+                if (spritesAre8x16)
+                {
+                    // sprites are 8x16, draw second half
+                    spriteIdx++;
+                    if ((scanlineNum>=(spriteY+8))&&(scanlineNum<(spriteY+16)))
+                    {
+                        this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
+                    }
                 }
             }
+        }
+        else
+        {
+            // Mode M2
+            this.drawSpritesM2Scanline(scanlineNum);
         }
 
         // column 0:  D5 - 1= Mask column 0 with overscan color from register #7

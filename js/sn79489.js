@@ -174,7 +174,7 @@ class sn79489
 
     mixVoices()
     {
-        if (glbEmulatorStatus!=1) return 0; // quiet if not running or anything
+        if ((glbMaxSpeed)||(glbEmulatorStatus!=1)) return 0; // quiet if not running or anything
 
         var finalSample=0;
 

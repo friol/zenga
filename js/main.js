@@ -15,8 +15,8 @@ var glbSoundchip;
 
 // fps counter
 var frameTime = 0;
-var lastLoop = new Date;
-var thisLoop=undefined;
+var lastLoop;
+var thisLoop;
 
 var glbBpLine=0;
 var glbBreakpoint=-1;
@@ -25,7 +25,8 @@ const numDebuggerLines=20;
 var glbEmulatorStatus=-1; // -1 warming up, 0 debugging, 1 running, 2 paused
 var glbVideoctx;
 var glbMaxSpeed=false;
-var glbScheduleInterval=13;
+var glbScheduleInterval=16;
+var glbFrames=0;
 
 //
 
@@ -179,8 +180,9 @@ function emulate()
     var fpsOut = document.getElementById('fpsSpan');
     var fpeez=(1000/frameTime).toFixed(1);
     fpsOut.innerHTML = "going at " + fpeez + " fps";
+    glbFrames++;
 
-    if (!glbMaxSpeed)
+    if ((!glbMaxSpeed)&&(glbFrames>60))
     {
         if (fpeez<smsFps)
         {
@@ -248,6 +250,8 @@ function handleCartridgeUpload(fls)
 
         //glbEmulatorStatus=0;
         glbEmulatorStatus=1;
+        lastLoop = new Date;
+        thisLoop=undefined;
         hideDebugStuff();
         emulate();
 	};
