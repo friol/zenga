@@ -843,7 +843,7 @@ class smsVDP
                 this.drawLineTile((word&0x1ff)*32,(x*8)+finescrollx,scanlineNum,pal,flipH,flipV,finescrolly,priFlag);   
             }
         }
-        else
+        else if ((this.register00&0x02)!=0)
         {
             // mode M2=1
             var nameTableBaseAddress=(this.nameTableBaseAddress&0x0f)<<10;
@@ -922,7 +922,7 @@ class smsVDP
                 }
             }
         }
-        else
+        else if ((this.register00&0x02)!=0)
         {
             // Mode M2
             this.drawSpritesM2Scanline(scanlineNum);

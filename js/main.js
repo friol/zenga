@@ -105,6 +105,25 @@ function drawDebugPanel(instructions)
     ctx.fillText("SP: "+(glbCPU.registers.sp).toString(16).padStart(4,'0'),regxpos,ycoord);
     ycoord+=20;
     ctx.fillText("PC: "+(glbCPU.registers.pc).toString(16).padStart(4,'0'),regxpos,ycoord);
+
+    // draw memory
+    /*const vramlines=8;
+    var ypp=20;
+    var vramAddr=0xc000;
+
+    for (var l=0;l<vramlines;l++)
+    {
+        var stringy=vramAddr.toString(16).padStart(4,'0')+": ";
+        for (var b=0;b<8;b++)
+        {
+            const byte=glbMMU.readAddr(vramAddr);
+            stringy+=byte.toString(16).padStart(2,'0')+" ";
+            vramAddr++;
+        }
+
+        ctx.fillText(stringy,500,ypp);
+        ypp+=20;
+    }*/
 }
 
 function drawFFWDIcon()
@@ -230,9 +249,9 @@ function handleCartridgeUpload(fls)
 	{
 		var fname=document.getElementById("cartridgeSelector").value;
 
-		if ((fname.toLowerCase().indexOf(".sms")<0)&&(fname.indexOf(".")>0))
+		if ((fname.toLowerCase().indexOf(".sms")<0)&&(fname.toLowerCase().indexOf(".sg")<0)&&(fname.indexOf(".")>0))
 		{
-			alert("You can only load .sms files");
+			alert("You can only load .sms and .sg files");
 			return;
 		}
 
@@ -434,10 +453,10 @@ window.onload = (event) =>
             {
                 var cyc=glbCPU.executeOne();
                 glbVDP.update(glbCPU,cyc);
-                if ((glbCPU.maskableInterruptWaiting)/*||(glbCPU.registers.pc==0x04d7)*/)
-                {
-                    goout=true;
-                }
+                //if ((glbCPU.maskableInterruptWaiting)/*||(glbCPU.registers.pc==0x04d7)*/)
+                //{
+                //    goout=true;
+                //}
             }
             e.preventDefault();
         }

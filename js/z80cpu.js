@@ -1872,14 +1872,9 @@ class z80cpu
 		let address = this.registers.l|(this.registers.h<<8);
 		let byte = this.theMMU.readAddr(address);
 
-		let nibble0 = (this.registers.a & 0x0f);
-		let nibble1 = (byte & 0xf0) >> 4;
-		let nibble2 = (byte & 0x0f);
-
-		this.registers.a = (this.registers.a & 0xf0) | nibble1;
-		byte = (nibble2 << 4) | nibble0;
-
-        this.theMMU.writeAddr16bit(address, byte);
+        var result=(this.registers.a&0xf0)|((byte>>4)&0x0F);
+        this.theMMU.writeAddr(address,((byte<<4)&0xF0)|(this.registers.a&0x0F));
+		this.registers.a = result;
 
 		// Reset the flags.
 		this.registers.f &= 0x01;
@@ -3779,6 +3774,7 @@ class z80cpu
 
         this.prefixedOpcodes[0x5f]=[function()
         {
+            //console.log("LDAR");
             // seems that R register behaves as being seen as 7-bit
             self.registers.r+=2;
             self.registers.r&=0x7f;
