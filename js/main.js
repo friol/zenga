@@ -107,23 +107,23 @@ function drawDebugPanel(instructions)
     ctx.fillText("PC: "+(glbCPU.registers.pc).toString(16).padStart(4,'0'),regxpos,ycoord);
 
     // draw memory
-    /*const vramlines=8;
+    const vramlines=8;
     var ypp=20;
-    var vramAddr=0xc000;
+    var vramAddr=0x3830;
 
     for (var l=0;l<vramlines;l++)
     {
         var stringy=vramAddr.toString(16).padStart(4,'0')+": ";
         for (var b=0;b<8;b++)
         {
-            const byte=glbMMU.readAddr(vramAddr);
+            const byte=glbVDP.vRam[vramAddr];
             stringy+=byte.toString(16).padStart(2,'0')+" ";
             vramAddr++;
         }
 
         ctx.fillText(stringy,500,ypp);
         ypp+=20;
-    }*/
+    }
 }
 
 function drawFFWDIcon()
@@ -136,7 +136,6 @@ function drawFFWDIcon()
     ctx.textBaseline = 'top';
 
     ctx.fillText(">>",2,180);        
-    //ctx.fillText("ffwd",10,180);        
 }
 
 function drawPauseIcon()

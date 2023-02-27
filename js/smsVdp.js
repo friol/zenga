@@ -21,7 +21,7 @@ class smsVDP
         this.colorRam=new Array();
         for (var c=0;c<0x20;c++)
         {
-            this.colorRam.push(0);            
+            this.colorRam.push(0);
         }
 
         this.clockCyclesPerScanline=228;
@@ -35,23 +35,27 @@ class smsVDP
         this.readBufferByte=0;
         this.statusFlags=0;
 
-        this.nameTableBaseAddress=0;
+        this.nameTableBaseAddress=0xff;
         this.spriteAttributeTableBaseAddress=0;
         this.spritePatternGeneratorBaseAddress=0;
 
         this.vcounter=0;
         this.hcounter=0;
 
-        this.register00=0;
-        this.register01=0;
-        this.register03=0;
-        this.register04=0;
-        this.register05=0;
-        this.register06=0;
-        this.register08=0;
-        this.register09=0;
-        this.register07=0;
-        this.register0a=0; // line counter
+        // seems that the VDP registers have defaults.
+        this.register00=0x36;
+        this.register01=0x80;
+        this.register02=0xff;
+        this.register03=0xff;
+        this.register04=0xff;
+        this.register05=0xff;
+        this.writeByteToRegister(5,0xff);
+        this.register06=0xfb;
+        this.writeByteToRegister(6,0xfb);
+        this.register08=0x00;
+        this.register09=0x00;
+        this.register07=0x00;
+        this.register0a=0xff; // line counter
 
         this.glbResolutionX=256;
         this.glbResolutionY=192;
@@ -122,6 +126,7 @@ class smsVDP
         {
             /*  Register $02 - Name Table Base Address */
             this.nameTableBaseAddress = dataByte;
+            this.register02=dataByte;
         }
         else if (registerIndex==3)
         {
@@ -793,7 +798,7 @@ class smsVDP
 
         // background tiles
         // mode M4
-        if ((this.register00&0x04)!=0)
+        if (true)//((this.register00&0x04)!=0)
         {
             var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 

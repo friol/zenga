@@ -163,6 +163,36 @@ class z80cpu
         this.registers.pc&=0xffff;
     }
 
+    sll_8bit(v)
+    {
+        this.registers.f=0x00;
+
+        if ((v&0x80)!=0)
+        {
+			this.registers.f |= z80flags.FLAG_C;
+        }
+
+        var result=((v<<1)|0x01)&0xff;
+
+        if (this.parityLookUp[result]) 
+        {
+			this.registers.f |= z80flags.FLAG_PV;
+		}        
+
+        if (result == 0) 
+        {
+			this.registers.f |= z80flags.FLAG_Z;
+		}
+
+		// S: Set if the twos-compliment value is negative.
+		if (result & 0x80) 
+        {
+			this.registers.f |= z80flags.FLAG_S;
+		}        
+
+        return result;
+    }
+
     rlc_8bit(v) 
     {
 		let bit7Set = (v & 0x80) > 0;
@@ -6761,6 +6791,27 @@ class z80cpu
 
             self.incPc(4); 
         }, "SRA (IX+%d)", 23, 1, false];
+
+        this.prefixddcbOpcodes[0x36]=[function() 
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+2);
+            const ix=self.registers.ixl|(self.registers.ixh<<8); 
+            var incr;
+            if ((m1&0x80)==0x80) 
+            {
+                incr=-0x80+(m1&0x7F);
+            }
+            else incr=m1;
+
+            const addr=(ix+incr)&0xffff;
+            var mem=self.theMMU.readAddr(addr);
+
+            mem = self.sll_8bit(mem); 
+
+            self.theMMU.writeAddr(addr,mem);
+
+            self.incPc(4); 
+        }, "SLL (IX+%d)", 23, 1, true];
             
         this.prefixddcbOpcodes[0x3e]=[function() 
         {
@@ -7423,6 +7474,48 @@ class z80cpu
 
             self.incPc(4); 
         }, "SRA (IY+%d)", 23, 1, false];
+    
+        this.prefixfdcbOpcodes[0x36]=[function() 
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+2);
+            const iy=self.registers.iyl|(self.registers.iyh<<8); 
+            var incr;
+            if ((m1&0x80)==0x80) 
+            {
+                incr=-0x80+(m1&0x7F);
+            }
+            else incr=m1;
+
+            const addr=(iy+incr)&0xffff;
+            var mem=self.theMMU.readAddr(addr);
+
+            mem = self.sll_8bit(mem); 
+
+            self.theMMU.writeAddr(addr,mem);
+
+            self.incPc(4); 
+        }, "SLL (IY+%d)", 23, 1, true];
+    
+        this.prefixfdcbOpcodes[0x3e]=[function() 
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+2);
+            const iy=self.registers.iyl|(self.registers.iyh<<8); 
+
+            var incr;
+            if ((m1&0x80)==0x80) 
+            {
+                incr=-0x80+(m1&0x7F);
+            }
+            else incr=m1;
+
+            const addr=(iy+incr)&0xffff;
+            var mem=self.theMMU.readAddr(addr);
+
+            mem = self.srl_8bit(mem); 
+            self.theMMU.writeAddr(addr,mem);
+
+            self.incPc(4); 
+        }, "SRL (IY+%d)", 23, 1, false];
     
         this.prefixfdcbOpcodes[0x46]=[function() 
         {
