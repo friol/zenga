@@ -50,6 +50,8 @@ class smsMmu
     	let bankIndex = 0;
     	let bankByteIndex = 0;
 
+        this.numRealBanks=theCart.cartridgeRom.length/0x4000;
+
         for (let i = 0; i < theCart.cartridgeRom.length; i++) 
         {
             this.romBanks[bankIndex][bankByteIndex] = theCart.cartridgeRom[i];
@@ -201,7 +203,7 @@ class smsMmu
 		// Check bit 2: RAM bank select.
 		if ((byte & 0x04) > 0) 
         {
-			//throw 'Unimplemented RAM bank select.';
+			throw 'Unimplemented RAM bank select.';
 		}
 
 		// Check bit 3: System RAM override.
@@ -216,7 +218,7 @@ class smsMmu
 
 	setMapperSlot(slotIndex, byte) 
     {
-		let bankIndex = byte & 0x3f; // Mask off to just first 6 bits.
+		let bankIndex = byte&(this.numRealBanks-1);
 
 		this.mapperSlots[slotIndex] = this.romBanks[bankIndex];
 
@@ -343,6 +345,10 @@ class smsMmu
         }
         else if (port >= 0xc0 && port <= 0xff) 
         {
+            if (port==0xde) return 0xff;
+            if (port==0xdf) return 0xff; // Unknown use
+            if (port==0xf2) return 0; // YM2413            
+
 			if (port % 2 == 0) 
             {
                 // TODO

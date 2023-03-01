@@ -132,6 +132,8 @@ class cpuTestRunner
                     console.log("testRunner::e is different from test case");
                     testFailed=true;
                 }
+
+                // we ignore flags 3 and 5, since they should be not relevant for emulation
                 if ((this.theCpu.registers.f&0xd7)!=(this.testJsonObject[testCaseNum].final.f&0xd7))
                 {
                     console.log("testRunner::f is different from test case - emulated f: ["+
@@ -140,6 +142,7 @@ class cpuTestRunner
                     );
                     testFailed=true;
                 }
+
                 if (this.theCpu.registers.h!=this.testJsonObject[testCaseNum].final.h)
                 {
                     console.log("testRunner::h is different from test case "+
@@ -152,6 +155,46 @@ class cpuTestRunner
                     console.log("testRunner::l is different from test case");
                     testFailed=true;
                 }
+
+                if (this.theCpu.shadowRegisters.a!=(this.testJsonObject[testCaseNum].final.af_>>8))
+                {
+                    console.log("testRunner::a' is different from test case");
+                    testFailed=true;
+                }
+
+                if (this.theCpu.shadowRegisters.b!=(this.testJsonObject[testCaseNum].final.bc_>>8))
+                {
+                    console.log("testRunner::b' is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.shadowRegisters.c!=(this.testJsonObject[testCaseNum].final.bc_&0xff))
+                {
+                    console.log("testRunner::c' is different from test case");
+                    testFailed=true;
+                }
+
+                if (this.theCpu.shadowRegisters.d!=(this.testJsonObject[testCaseNum].final.de_>>8))
+                {
+                    console.log("testRunner::d' is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.shadowRegisters.e!=(this.testJsonObject[testCaseNum].final.de_&0xff))
+                {
+                    console.log("testRunner::e' is different from test case");
+                    testFailed=true;
+                }
+
+                if (this.theCpu.shadowRegisters.h!=(this.testJsonObject[testCaseNum].final.hl_>>8))
+                {
+                    console.log("testRunner::h' is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.shadowRegisters.l!=(this.testJsonObject[testCaseNum].final.hl_&0xff))
+                {
+                    console.log("testRunner::l' is different from test case");
+                    testFailed=true;
+                }
+
                 if (this.theCpu.registers.pc!=this.testJsonObject[testCaseNum].final.pc)
                 {
                     console.log("testRunner::pc is different from test case - case "+this.testJsonObject[testCaseNum].name+
@@ -162,6 +205,33 @@ class cpuTestRunner
                 {
                     console.log("testRunner::sp is different from test case: emulated sp ["+
                     this.theCpu.registers.sp+"] test case's sp ["+this.testJsonObject[testCaseNum].final.sp+"]");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.ixl!=((this.testJsonObject[testCaseNum].final.ix&0xff)))
+                {
+                    console.log("testRunner::ixl is different from test case: emulated ixl ["+
+                    this.theCpu.registers.ixl+"] test case's ixl ["+((this.testJsonObject[testCaseNum].final.ix)&0xff)+"]");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.ixh!=(this.testJsonObject[testCaseNum].final.ix>>8))
+                {
+                    console.log("testRunner::ixh is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.iyh!=(this.testJsonObject[testCaseNum].final.iy>>8))
+                {
+                    console.log("testRunner::iyh is different from test case");
+                    testFailed=true;
+                }
+                if (this.theCpu.registers.iyl!=(this.testJsonObject[testCaseNum].final.iy&0xff))
+                {
+                    console.log("testRunner::iyl is different from test case");
+                    testFailed=true;
+                }
+
+                if (this.theCpu.registers.iff1!=(this.testJsonObject[testCaseNum].final.iff1))
+                {
+                    console.log("testRunner::iff1 is different from test case");
                     testFailed=true;
                 }
 

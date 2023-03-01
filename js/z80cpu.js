@@ -38,8 +38,8 @@ class z80cpu
 
         this.registers = 
         { 
-            a: 0, b: 0, c: 0, d: 0, e: 0, h: 0, l: 0, f: 0, 
-            ixh: 0, ixl: 0, iyh: 0, iyl: 0,
+            a: 0, b: 0, c: 0, d: 0, e: 0, h: 0, l: 0, f: 0x40, 
+            ixh: 0xff, ixl: 0xff, iyh: 0xff, iyl: 0xff,
             pc: 0, sp: 0xdff0, r: 0, i:0, iff1: 0, iff2: 0
         };
     
@@ -53,6 +53,7 @@ class z80cpu
         this.NMIWaiting = false;        
         this.interruptMode = 0;
         this.isHalted=false;
+        this.m_bAfterEI=false;
 
         this.totCycles=0;
         this.additionalCycles=0;
@@ -2485,6 +2486,7 @@ class z80cpu
     
         this.unprefixedOpcodes[0x47]=[function() { self.registers.b=self.registers.a; self.incPc(1); }, "LD B,A", 4, 0, false];
         this.unprefixedOpcodes[0x48]=[function() { self.registers.c=self.registers.b; self.incPc(1); }, "LD C,B", 4, 0, false];
+        this.unprefixedOpcodes[0x49]=[function() { self.registers.c=self.registers.c; self.incPc(1); }, "LD C,C", 4, 0, false];
         this.unprefixedOpcodes[0x4a]=[function() { self.registers.c=self.registers.d; self.incPc(1); }, "LD C,D", 4, 0, false];
         this.unprefixedOpcodes[0x4b]=[function() { self.registers.c=self.registers.e; self.incPc(1); }, "LD C,E", 4, 0, false];
         this.unprefixedOpcodes[0x4c]=[function() { self.registers.c=self.registers.h; self.incPc(1); }, "LD C,H", 4, 0, false];
@@ -3535,7 +3537,7 @@ class z80cpu
             }
         }, "JP M,%d", 10, 2, false];
     
-        this.unprefixedOpcodes[0xfb]=[function() { self.registers.iff1=1; self.registers.iff2=1; self.maskableInterruptsEnabled = true; self.incPc(1); }, "EI", 4, 0, false];
+        this.unprefixedOpcodes[0xfb]=[function() { self.m_bAfterEI=true; self.registers.iff1=1; self.registers.iff2=1; self.maskableInterruptsEnabled = true; self.incPc(1); }, "EI", 4, 0, false];
 
         this.unprefixedOpcodes[0xfc]=[function()
         {
@@ -3807,6 +3809,7 @@ class z80cpu
             //console.log("LDAR");
             // seems that R register behaves as being seen as 7-bit
             self.registers.r+=2;
+            //self.registers.r=Math.floor(Math.random() * 0x80);
             self.registers.r&=0x7f;
             self.registers.a=self.registers.r;
 
@@ -5104,6 +5107,12 @@ class z80cpu
             self.registers.e|=0x20;
             self.incPc(2); 
         }, "SET 5,E", 8, 0, false];
+
+        this.prefixcbOpcodes[0xec]=[function() 
+        { 
+            self.registers.h|=0x20;
+            self.incPc(2); 
+        }, "SET 5,H", 8, 0, false];
             
         this.prefixcbOpcodes[0xee]=[function()
         {
@@ -6010,6 +6019,12 @@ class z80cpu
             self.incPc(2); 
         }, "DEC IX", 10, 0, false];
 
+        this.prefixddOpcodes[0x2c]=[function() 
+        {
+            self.registers.ixl=self.inc_8bit(self.registers.ixl);
+            self.incPc(2); 
+        }, "INC IXL", 8, 0, true];
+    
         this.prefixddOpcodes[0x2d]=[function() 
         {
             self.registers.ixl=self.dec_8bit(self.registers.ixl);
@@ -8024,26 +8039,36 @@ class z80cpu
 
         if (this.NMIWaiting)
         {
+            this.isHalted=false;
             elapsedCycles+=11;
             this.registers.iff1=0;
+            this.registers.iff2=0;
             this.NMIWaiting=false;
             this.pushWord(this.registers.pc);
             this.registers.pc = 0x0066;
+
+            //console.log("NMI frame "+Math.floor(this.totCycles/59659));
         }
-        else if ((this.registers.iff1!=0)&&(this.maskableInterruptWaiting))
+        else if ((this.registers.iff1!=0)&&(this.maskableInterruptWaiting)&&(!this.m_bAfterEI))
         {
+            this.isHalted=false;
+            elapsedCycles+=13;
             this.registers.iff1=0;
             this.registers.iff2=0;
             this.maskableInterruptWaiting = false;
             this.maskableInterruptsEnabled = false;
             this.pushWord(this.registers.pc);
             this.registers.pc = 0x0038;
+
+            //console.log("Irq frame "+Math.floor(this.totCycles/59659));
         }
         else if (this.isHalted)
         {
             // TODO: how many cycles to advance when halted?
             return 4;            
         }
+
+        this.m_bAfterEI=false;
 
         var b1=this.theMMU.readAddr(this.registers.pc);
         if (b1==0xcb)

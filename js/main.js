@@ -266,8 +266,8 @@ function handleCartridgeUpload(fls)
         glbCPU=new z80cpu(glbMMU);
         glbSoundchip.startMix(glbCPU);
 
-        //glbEmulatorStatus=0;
-        glbEmulatorStatus=1;
+        glbEmulatorStatus=0;
+        //glbEmulatorStatus=1;
         lastLoop = new Date;
         thisLoop=undefined;
         hideDebugStuff();

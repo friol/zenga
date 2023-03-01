@@ -46,6 +46,7 @@ class smsVDP
         this.register00=0x36;
         this.register01=0x80;
         this.register02=0xff;
+        this.writeByteToRegister(2,0xff);
         this.register03=0xff;
         this.register04=0xff;
         this.register05=0xff;
@@ -261,15 +262,7 @@ class smsVDP
         else if (this.dataPortWriteMode==vdpDataPortWriteMode.toCRAM)
         {
             let cramAddress=this.dataPortReadWriteAddress&0x1f;
-
-			if (cramAddress < 0x20) 
-            {
-				this.colorRam[cramAddress]=b;
-			} 
-            else 
-            {
-				console.log('VDP::Attempt to write to illegal CRAM address: ' + cramAddress.toString(16));
-			}            
+            this.colorRam[cramAddress]=b;
         }
 
 		this.dataPortReadWriteAddress++;
@@ -582,12 +575,7 @@ class smsVDP
             // linecounter
             if (this.currentScanlineIndex <= 192) 
             {
-                this.lineCounter--;
-                if (this.lineCounter<0) this.lineCounter=0xff;
-                this.lineCounter&=0xff;
-    
-                // Check if the counter has underflowed.
-                if (this.lineCounter == 0xff) 
+                if (this.lineCounter == 0x0) 
                 {
                     this.lineCounter = this.register0a;
     
@@ -595,6 +583,10 @@ class smsVDP
                     {
                         raiseInterrupt = true;
                     }
+                }
+                else
+                {
+                    this.lineCounter--;
                 }
             } 
             else 
@@ -798,7 +790,7 @@ class smsVDP
 
         // background tiles
         // mode M4
-        if (true)//((this.register00&0x04)!=0)
+        if ((this.register00&0x04)!=0)
         {
             var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 
