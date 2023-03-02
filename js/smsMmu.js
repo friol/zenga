@@ -18,7 +18,10 @@ class smsMmu
 
         // SEGA mapper
 
-        this.cartridgeRam=new Uint8Array(0x4000);
+        this.portAB=0xff;
+        this.mapperSlot2IsCartridgeRam = false;
+
+        this.cartridgeRam=new Array(0x4000);
         for (var i=0;i<0x4000;i++)
         {
             this.cartridgeRam[i]=0;
@@ -26,6 +29,7 @@ class smsMmu
 
         this.romBanks = [];
         this.mapperSlots = [];
+        this.mapperSlotsIdx = [];
         
         for (let i = 0; i < 64; i++) 
         {
@@ -37,6 +41,7 @@ class smsMmu
 			this.mapperSlots[i] = null;
 		}
 
+        // blank romBanks
         for (let i = 0; i < this.romBanks.length; i++) 
         {
 			var romBank = this.romBanks[i];
@@ -52,6 +57,7 @@ class smsMmu
 
         this.numRealBanks=theCart.cartridgeRom.length/0x4000;
 
+        // copy cartridge into banks
         for (let i = 0; i < theCart.cartridgeRom.length; i++) 
         {
             this.romBanks[bankIndex][bankByteIndex] = theCart.cartridgeRom[i];
@@ -68,12 +74,8 @@ class smsMmu
         for (let i = 0; i < 3; i++) 
         {
             this.mapperSlots[i] = i < this.romBanks.length ? this.romBanks[i] : null;
+            this.mapperSlotsIdx[i] = i < this.romBanks.length ? i : -1;
         }
-
-        //
-
-        this.portAB=0xff;
-        this.mapperSlot2IsCartridgeRam = false;
 
         console.log("MMU::Inited");
     }
@@ -221,6 +223,7 @@ class smsMmu
 		let bankIndex = byte&(this.numRealBanks-1);
 
 		this.mapperSlots[slotIndex] = this.romBanks[bankIndex];
+        this.mapperSlotsIdx[slotIndex]=bankIndex;
 
 		//this.log('Mapper slot ' + slotIndex + ' set to ROM bank ' + byte + '.');
 	}

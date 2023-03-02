@@ -27,6 +27,7 @@ var glbVideoctx;
 var glbMaxSpeed=false;
 var glbScheduleInterval=16;
 var glbFrames=0;
+var glbSerializer;
 
 //
 
@@ -266,8 +267,8 @@ function handleCartridgeUpload(fls)
         glbCPU=new z80cpu(glbMMU);
         glbSoundchip.startMix(glbCPU);
 
-        glbEmulatorStatus=0;
-        //glbEmulatorStatus=1;
+        //glbEmulatorStatus=0;
+        glbEmulatorStatus=1;
         lastLoop = new Date;
         thisLoop=undefined;
         hideDebugStuff();
@@ -468,6 +469,7 @@ window.onload = (event) =>
         else if (e.key=="\\")
         {
             glbMaxSpeed=true;
+            e.preventDefault();
         }
         else if (e.key=="p")
         {
@@ -478,6 +480,16 @@ window.onload = (event) =>
         else if (e.key=="o")
         {
             glbCPU.raiseNMI();
+        }
+        else if (e.key=="F2")
+        {
+            glbSerializer.serialize(glbCPU,glbVDP,glbMMU,glbSoundchip);
+            e.preventDefault();
+        }
+        else if (e.key=="F3")
+        {
+            glbSerializer.deserialize(glbCPU,glbVDP,glbMMU,glbSoundchip);
+            e.preventDefault();
         }
         else if (e.key=="z") { glbMMU.pressButton1(); }
         else if (e.key=="x") { glbMMU.pressButton2(); }
@@ -533,4 +545,5 @@ window.onload = (event) =>
 
     const videocanvas=document.getElementById("smsdisplay");
     glbVideoctx = videocanvas.getContext("2d");
+    glbSerializer=new serializer();
 }
