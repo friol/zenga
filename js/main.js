@@ -28,6 +28,8 @@ var glbMaxSpeed=false;
 var glbScheduleInterval=16;
 var glbFrames=0;
 var glbSerializer;
+var glbSerCounterL=-1;
+var glbSerCounterS=-1;
 
 //
 
@@ -107,19 +109,30 @@ function drawDebugPanel(instructions)
     ycoord+=20;
     ctx.fillText("PC: "+(glbCPU.registers.pc).toString(16).padStart(4,'0'),regxpos,ycoord);
 
+    ycoord+=40;
+    ctx.fillText("SZFHFPNC",regxpos,ycoord);
+    ycoord+=20;
+    ctx.fillText(glbCPU.getFlags(),regxpos,ycoord);
+    
+    ycoord+=40;
+    ctx.fillText("DPRW:"+glbVDP.dataPortReadWriteAddress.toString(16).padStart(4,'0'),regxpos,ycoord);
+
     // draw memory
     const vramlines=8;
     var ypp=20;
-    var vramAddr=0x3830;
+    //var vramAddr=0x2000;
+    var romAddr=0x4cc8;
 
     for (var l=0;l<vramlines;l++)
     {
-        var stringy=vramAddr.toString(16).padStart(4,'0')+": ";
+        var stringy=romAddr.toString(16).padStart(4,'0')+": ";
         for (var b=0;b<8;b++)
         {
-            const byte=glbVDP.vRam[vramAddr];
+            //const byte=glbVDP.vRam[vramAddr];
+            const byte=glbMMU.readAddr(romAddr);
             stringy+=byte.toString(16).padStart(2,'0')+" ";
-            vramAddr++;
+            //vramAddr++;
+            romAddr++;
         }
 
         ctx.fillText(stringy,500,ypp);
@@ -149,6 +162,18 @@ function drawPauseIcon()
     ctx.textBaseline = 'top';
 
     ctx.fillText("||",2,180);        
+}
+
+function drawStatus(s)
+{
+    var cnvs = document.getElementById("smsdisplay");
+    var ctx = cnvs.getContext("2d", { willReadFrequently: true });
+
+    ctx.font='10px arial';
+    ctx.fillStyle = 'white';
+    ctx.textBaseline = 'top';
+
+    ctx.fillText(s,195,180);        
 }
 
 function emulate()
@@ -190,6 +215,18 @@ function emulate()
 
     if (glbMaxSpeed) drawFFWDIcon();
 
+    if (glbSerCounterL>0)
+    {
+        glbSerCounterL--;
+        drawStatus("State loaded");
+    }
+
+    if (glbSerCounterS>0)
+    {
+        glbSerCounterS--;
+        drawStatus("State saved");
+    }
+
     // calc fps
     const filterStrength = 20;
     var thisFrameTime = (thisLoop=new Date) - lastLoop;
@@ -227,7 +264,7 @@ function emulate()
 
 function drawScreen()
 {
-    //if (glbEmulatorStatus==0)
+    if (glbEmulatorStatus==0)
     {
         var decodedInstrs=glbCPU.debugInstructions(numDebuggerLines);
         drawDebugPanel(decodedInstrs);
@@ -238,7 +275,7 @@ function drawScreen()
     }
 
     //glbVDP.drawScreen(glbVideoctx);
-    glbVDP.hyperBlit(glbVideoctx);
+    glbVDP.hyperBlit(glbVideoctx,0);
 }
 
 function handleCartridgeUpload(fls)
@@ -259,7 +296,7 @@ function handleCartridgeUpload(fls)
 
 		arrayBuffer = event.target.result;
 
-        glbCartridge=new cartridge();
+        glbCartridge=new cartridge(fname);
         glbCartridge.load(arrayBuffer);
         glbVDP=new smsVDP();
         glbSoundchip=new sn79489();
@@ -483,12 +520,16 @@ window.onload = (event) =>
         }
         else if (e.key=="F2")
         {
-            glbSerializer.serialize(glbCPU,glbVDP,glbMMU,glbSoundchip);
+            glbSerializer.serialize(glbCartridge.cartName,glbCPU,glbVDP,glbMMU,glbSoundchip);
+            glbSerCounterS=60;
             e.preventDefault();
         }
         else if (e.key=="F3")
         {
-            glbSerializer.deserialize(glbCPU,glbVDP,glbMMU,glbSoundchip);
+            if (glbSerializer.deserialize(glbCartridge.cartName,glbCPU,glbVDP,glbMMU,glbSoundchip)==0)
+            {
+                glbSerCounterL=60;
+            }
             e.preventDefault();
         }
         else if (e.key=="z") { glbMMU.pressButton1(); }

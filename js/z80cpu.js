@@ -118,6 +118,23 @@ class z80cpu
         return cnt;
     }
 
+    getFlags()
+    {
+        var s="";
+        for (var b=0;b<8;b++)
+        {
+            if ((this.registers.f&(1<<(7-b)))!=0)
+            {
+                s+="1";
+            }
+            else
+            {
+                s+="0";
+            }
+        }
+        return s;
+    }
+
     raiseMaskableInterrupt()
     {
         if (this.maskableInterruptsEnabled)
@@ -2518,6 +2535,7 @@ class z80cpu
         this.unprefixedOpcodes[0x58]=[function() { self.registers.e=self.registers.b; self.incPc(1); }, "LD E,B", 4, 0, false];
         this.unprefixedOpcodes[0x59]=[function() { self.registers.e=self.registers.c; self.incPc(1); }, "LD E,C", 4, 0, false];
         this.unprefixedOpcodes[0x5a]=[function() { self.registers.e=self.registers.d; self.incPc(1); }, "LD E,D", 4, 0, false];
+        this.unprefixedOpcodes[0x5b]=[function() { self.registers.e=self.registers.e; self.incPc(1); }, "LD E,E", 4, 0, false];
         this.unprefixedOpcodes[0x5c]=[function() { self.registers.e=self.registers.h; self.incPc(1); }, "LD E,H", 4, 0, false];
         this.unprefixedOpcodes[0x5d]=[function() { self.registers.e=self.registers.l; self.incPc(1); }, "LD E,L", 4, 0, false];
 
@@ -2549,6 +2567,7 @@ class z80cpu
         this.unprefixedOpcodes[0x6a]=[function() { self.registers.l=self.registers.d; self.incPc(1); }, "LD L,D", 4, 0, false];
         this.unprefixedOpcodes[0x6b]=[function() { self.registers.l=self.registers.e; self.incPc(1); }, "LD L,E", 4, 0, false];
         this.unprefixedOpcodes[0x6c]=[function() { self.registers.l=self.registers.h; self.incPc(1); }, "LD L,H", 4, 0, false];
+        this.unprefixedOpcodes[0x6d]=[function() { self.registers.l=self.registers.l; self.incPc(1); }, "LD L,L", 4, 0, false];
 
         this.unprefixedOpcodes[0x6e]=[function()
         {
@@ -3076,7 +3095,13 @@ class z80cpu
             self.registers.a=self.add_8bit(self.registers.a,m1); 
             self.incPc(2); 
         }, "ADD A,%d", 7, 1, false];
-    
+
+        this.unprefixedOpcodes[0xc7]=[function()
+        {
+            self.pushWord(self.registers.pc+1);
+            self.registers.pc=0x0;
+        }, "RST 00h", 11, 0, false];
+            
         this.unprefixedOpcodes[0xc8]=[function()
         {
             if (self.registers.f&z80flags.FLAG_Z)
@@ -3099,7 +3124,7 @@ class z80cpu
         {
             var m1=self.theMMU.readAddr(self.registers.pc+1);
             var m2=self.theMMU.readAddr(self.registers.pc+2);
-            if (self.registers.f&z80flags.FLAG_Z)
+            if ((self.registers.f&z80flags.FLAG_Z)!=0)
             {
                 self.registers.pc=(m2<<8)|m1;
             }
@@ -3968,6 +3993,12 @@ class z80cpu
             self.incPc(2); 
         }, "RLC H", 8, 0, false];
 
+        this.prefixcbOpcodes[0x05]=[function() 
+        {
+            self.registers.l = self.rlc_8bit(self.registers.l);
+            self.incPc(2); 
+        }, "RLC L", 8, 0, false];
+    
         this.prefixcbOpcodes[0x06]=[function()
         { 
             const address=self.registers.l|(self.registers.h<<8);
@@ -4219,6 +4250,12 @@ class z80cpu
             self.incPc(2); 
         }, "SRA A", 8, 0, false];
 
+        this.prefixcbOpcodes[0x33]=[function() 
+        {
+            self.registers.e = self.sll_8bit(self.registers.e); 
+            self.incPc(2); 
+        }, "SLL E", 8, 0, true];
+    
         this.prefixcbOpcodes[0x38]=[function() 
         {
             self.registers.b = self.srl_8bit(self.registers.b); 
@@ -5284,6 +5321,12 @@ class z80cpu
             self.incPc(2); 
         }, "INC IY", 10, 0, false];
 
+        this.prefixfdOpcodes[0x24]=[function() 
+        {
+            self.registers.iyh=self.inc_8bit(self.registers.iyh);
+            self.incPc(2); 
+        }, "INC IYH", 8, 0, true];
+    
         this.prefixfdOpcodes[0x25]=[function() 
         {
             self.registers.iyh=self.dec_8bit(self.registers.iyh);
@@ -6613,6 +6656,18 @@ class z80cpu
             self.incPc(3); 
         }, "OR (IX+%d)", 19, 1, false];
           
+        this.prefixddOpcodes[0xbc]=[function()
+        {
+            self.sub_8bit(self.registers.a,self.registers.ixh);
+            self.incPc(2);
+        }, "CP IXH", 8, 0, true];
+
+        this.prefixddOpcodes[0xbd]=[function()
+        {
+            self.sub_8bit(self.registers.a,self.registers.ixl);
+            self.incPc(2);
+        }, "CP IXL", 8, 0, true];
+            
         this.prefixddOpcodes[0xbe]=[function()
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);

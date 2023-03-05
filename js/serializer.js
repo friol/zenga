@@ -6,8 +6,11 @@ class serializer
     {
     }
 
-    serialize(cpu,vdp,mmu,psg)
+    serialize(cname,cpu,vdp,mmu,psg)
     {
+        // save cart name
+        localStorage.setItem('cartName', cname);
+
         // CPU
         localStorage.setItem('cpuRegisters', JSON.stringify(cpu.registers));
         localStorage.setItem('cpuShadowRegisters', JSON.stringify(cpu.shadowRegisters));
@@ -63,10 +66,20 @@ class serializer
         localStorage.setItem('psglatch', JSON.stringify(psg.latch));
         localStorage.setItem('psginternalClock', JSON.stringify(psg.internalClock));
         localStorage.setItem('psginternalClockPos', JSON.stringify(psg.internalClockPos));
+
+        console.log("Saved state for "+cname);
     }
 
-    deserialize(cpu,vdp,mmu,psg)
+    deserialize(cname,cpu,vdp,mmu,psg)
     {
+        // get cart name
+        const rCname=localStorage.getItem('cartName');
+        if (cname!=rCname)
+        {
+            console.log("Error: can't load savestate, it was made for a different rom");
+            return 1;
+        }
+
         // CPU
         cpu.registers = JSON.parse(localStorage.getItem('cpuRegisters'));
         cpu.shadowRegisters = JSON.parse(localStorage.getItem('cpuShadowRegisters'));
@@ -124,5 +137,8 @@ class serializer
         psg.latch = JSON.parse(localStorage.getItem('psglatch'));
         psg.internalClock = JSON.parse(localStorage.getItem('psginternalClock'));
         psg.internalClockPos = JSON.parse(localStorage.getItem('psginternalClockPos'));
+
+        console.log("Loaded state for "+cname);
+        return 0;
     }
 }

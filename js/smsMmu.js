@@ -8,6 +8,8 @@ class smsMmu
         this.theVDP=theVDP;
         this.theSoundchip=theSoundchip;
 
+        this.portAB=0xff;
+
         // system RAM
 
         this.ram8k=new Array(0x2000);
@@ -16,9 +18,17 @@ class smsMmu
             this.ram8k[i]=0;
         }
 
-        // SEGA mapper
+        // banking
 
-        this.portAB=0xff;
+        this.romIsCodeMasters=false;
+        let checksum1 = (theCart.cartridgeRom[0x7fe7] << 8) | theCart.cartridgeRom[0x7fe6];
+		let checksum2 = (theCart.cartridgeRom[0x7fe9] << 8) | theCart.cartridgeRom[0x7fe8];
+        if ((0x10000 - checksum1) == checksum2)
+        {
+            console.log("MMU::ROM is from Codemasters");
+		    this.romIsCodeMasters = true;
+        }
+
         this.mapperSlot2IsCartridgeRam = false;
 
         this.cartridgeRam=new Array(0x4000);
@@ -56,6 +66,10 @@ class smsMmu
     	let bankByteIndex = 0;
 
         this.numRealBanks=theCart.cartridgeRom.length/0x4000;
+        if (this.numRealBanks<3)
+        {
+            this.numRealBanks=3;
+        }
 
         // copy cartridge into banks
         for (let i = 0; i < theCart.cartridgeRom.length; i++) 
@@ -70,11 +84,23 @@ class smsMmu
             }
         }
 
-        // SEGA mapper
-        for (let i = 0; i < 3; i++) 
+        if (!this.romIsCodeMasters)
         {
-            this.mapperSlots[i] = i < this.romBanks.length ? this.romBanks[i] : null;
-            this.mapperSlotsIdx[i] = i < this.romBanks.length ? i : -1;
+            // SEGA mapper
+            for (let i = 0; i < 3; i++) 
+            {
+                this.mapperSlots[i] = i < this.romBanks.length ? this.romBanks[i] : null;
+                this.mapperSlotsIdx[i] = i < this.romBanks.length ? i : -1;
+            }
+        }
+        else
+        {
+	    	this.mapperSlots[0] = this.romBanks[0];
+	    	this.mapperSlots[1] = this.romBanks[1];
+	    	this.mapperSlots[2] = this.romBanks[0];            
+            this.mapperSlotsIdx[0]=0;
+            this.mapperSlotsIdx[1]=1;
+            this.mapperSlotsIdx[2]=0;
         }
 
         console.log("MMU::Inited");
@@ -87,7 +113,15 @@ class smsMmu
         /* When mapping in slot 0, the first 1KB is unaffected, in order to preserve the interrupt vectors. */
         if (addr <= 0x03ff) 
         {
-            return this.romBanks[0][addr];
+            if (this.romIsCodeMasters) 
+            {
+				let mapperSlot = this.mapperSlots[0];
+				return (mapperSlot != null ? mapperSlot[addr] : 0);
+			} 
+            else 
+            {
+                return this.romBanks[0][addr];
+			}
 		} 
         else if (addr <= 0x3fff) 
         {
@@ -134,9 +168,28 @@ class smsMmu
 
     writeAddr(addr,value)
     {
-        if ((addr>=0x8000)&&(addr<=0xbfff))
+        if (addr<0x8000)
         {
-			if (this.mapperSlot2IsCartridgeRam) 
+            if (this.romIsCodeMasters && addr == 0x0000) 
+            {
+				this.setMapperSlot(0, value);
+			} 
+            else if (this.romIsCodeMasters && addr == 0x4000) 
+            {
+				this.setMapperSlot(1, value);
+			} 
+            else 
+            {
+				console.log('Bad write address: ' + addr.toString(16));
+			}            
+        }
+        else if ((addr>=0x8000)&&(addr<=0xbfff))
+        {
+            if (this.romIsCodeMasters && addr == 0x8000) 
+            {
+				this.setMapperSlot(2, value);
+			}
+			else if (this.mapperSlot2IsCartridgeRam) 
             {
 				// ROM/RAM mapper slot 2.
 				this.cartridgeRam[addr - 0x8000] = value;
@@ -155,23 +208,26 @@ class smsMmu
         {
             this.ram8k[addr-0xe000]=value;
 
-            // SEGA mapper control addresses
-            if (addr == 0xfffc) 
+            if (!this.romIsCodeMasters) 
             {
-                this.setMapperControl(value);
-            } 
-            else if (addr == 0xfffd) 
-            {
-                this.setMapperSlot(0, value);
-            } 
-            else if (addr == 0xfffe) 
-            {
-                this.setMapperSlot(1, value);
-            } 
-            else if (addr == 0xffff) 
-            {
-                this.setMapperSlot(2, value);
-            }            
+                // SEGA mapper control addresses
+                if (addr == 0xfffc) 
+                {
+                    this.setMapperControl(value);
+                } 
+                else if (addr == 0xfffd) 
+                {
+                    this.setMapperSlot(0, value);
+                } 
+                else if (addr == 0xfffe) 
+                {
+                    this.setMapperSlot(1, value);
+                } 
+                else if (addr == 0xffff) 
+                {
+                    this.setMapperSlot(2, value);
+                }            
+            }
         }
     }
 
@@ -220,7 +276,7 @@ class smsMmu
 
 	setMapperSlot(slotIndex, byte) 
     {
-		let bankIndex = byte&(this.numRealBanks-1);
+		let bankIndex=byte%this.numRealBanks;
 
 		this.mapperSlots[slotIndex] = this.romBanks[bankIndex];
         this.mapperSlotsIdx[slotIndex]=bankIndex;
@@ -337,7 +393,7 @@ class smsMmu
         }
         else if (port >= 0x80 && port <= 0xbf) 
         {
-			if (port % 2 == 0) 
+			if ((port % 2) == 0) 
             {
 				return this.theVDP.readByteFromDataPort();
 			} 

@@ -2,10 +2,11 @@
 
 class cartridge
 {
-    constructor()
+    constructor(name)
     {
         this.cartridgeSize=0;
         this.cartridgeRom=[];
+        this.cartName=name;
     }
 
     checkForTmrSega(h)

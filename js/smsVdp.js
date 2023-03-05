@@ -209,7 +209,7 @@ class smsVDP
 			this.controlWord|=(b<<8);
 			this.controlWordFlag=false;
 
-			let controlCode=(this.controlWord & 0xc000) >> 14; //(b>>6)&3;
+			let controlCode=(this.controlWord & 0xc000) >> 14;
 			this.dataPortReadWriteAddress=(this.controlWord&0x3fff);        
 
             //console.log("VDP::word written to control port, controlCode "+controlCode.toString(16)+" address "+this.dataPortReadWriteAddress.toString(16));
@@ -246,7 +246,6 @@ class smsVDP
     writeByteToDataPort(b)
     {
         this.controlWordFlag = false;
-		this.readBufferByte=b;
 
         if (this.dataPortWriteMode==vdpDataPortWriteMode.toVRAM)
         {
@@ -267,6 +266,7 @@ class smsVDP
 
 		this.dataPortReadWriteAddress++;
 		this.dataPortReadWriteAddress&=0x3fff;
+        this.readBufferByte=b;
     }
 
     readByteFromDataPort()
@@ -277,7 +277,7 @@ class smsVDP
 		this.readBufferByte = this.vRam[this.dataPortReadWriteAddress];
 
 		this.dataPortReadWriteAddress++;
-		this.dataPortReadWriteAddress &= 0x3fff;
+		this.dataPortReadWriteAddress&=0x3fff;
 
 		return byte;
 	}    
@@ -509,11 +509,11 @@ class smsVDP
     debugTiles(ctx,x,y)
     {
         var addrInMemory=0;
-        for (var ytile=0;ytile<32;ytile++)
+        for (var ytile=0;ytile<24;ytile++)
         {
             for (var xtile=0;xtile<16;xtile++)
             {
-                //this.drawTiledbg(ctx,addrInMemory,x+(xtile*8),y+(ytile*8),0);
+                this.drawTiledbg(ctx,addrInMemory,x+(xtile*8),170+y+(ytile*8),0);
                 addrInMemory+=32; /* Each tile uses 32 bytes */
             }
         }
@@ -535,8 +535,28 @@ class smsVDP
 
     }
 
-    hyperBlit(ctx)
+    hyperBlit(ctx,filtertype)
     {
+        if (filtertype==1)
+        {
+            // apply a filter
+
+            for (var y=0;y<this.glbResolutionY;y+=2)
+            {
+                var pos=(y*this.glbResolutionX)*4;
+                for (var x=0;x<this.glbResolutionX;x++)
+                {
+                    this.glbFrameBuffer[pos+0]=Math.floor(this.glbFrameBuffer[pos+0]*0.75);
+                    this.glbFrameBuffer[pos+1]=Math.floor(this.glbFrameBuffer[pos+1]*0.75);
+                    this.glbFrameBuffer[pos+2]=Math.floor(this.glbFrameBuffer[pos+2]*0.75);
+                    this.glbFrameBuffer[pos+3]=255;
+                    pos+=4;
+                }
+            }
+        }
+
+        // blit
+
         if (this.glbImgData==undefined) this.glbImgData = ctx.getImageData(0, 0, this.glbResolutionX,this.glbResolutionY);
         this.glbImgData.data.set(this.glbFrameBuffer);
     
@@ -942,7 +962,5 @@ class smsVDP
                 this.glbFrameBuffer[pos+3]=255;
             }
         }
-
     }
-
 }
