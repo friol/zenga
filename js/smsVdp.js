@@ -10,6 +10,8 @@ class smsVDP
 {
     constructor()
     {
+        this.cappaaah=0;
+
         /* video RAM */
         this.vRam=new Array();
         for (var b=0;b<0x4000;b++)
@@ -609,7 +611,7 @@ class smsVDP
     
                     if (this.register00&0x10) 
                     {
-                        raiseInterrupt = true;
+                        raiseInterrupt=true;
                     }
                 }
                 else
@@ -630,7 +632,7 @@ class smsVDP
             // frame interrupt
             if ((this.currentScanlineIndex==193)/*&&(this.statusFlags&0x80)*/)
             {
-                if (this.register01&0x20)
+                if ((this.register01&0x20)!=0)
                 {
                     raiseInterrupt=true;
                 }

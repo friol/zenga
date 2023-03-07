@@ -103,6 +103,9 @@ class smsMmu
             this.mapperSlotsIdx[2]=0;
         }
 
+        /*this.romBanks[0][0x786]=0x00;
+        this.romBanks[0][0x787]=0x00;*/
+
         console.log("MMU::Inited");
     }
 

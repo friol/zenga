@@ -2619,7 +2619,10 @@ class z80cpu
             self.incPc(1);
         }, "LD (HL),L",7, 0, false];
 
-        this.unprefixedOpcodes[0x76]=[function() { this.isHalted=true; self.incPc(1); }, "HALT", 4, 0, false];
+        this.unprefixedOpcodes[0x76]=[function() 
+        { 
+            self.isHalted=true; 
+        }, "HALT", 4, 0, false];
         
         this.unprefixedOpcodes[0x77]=[function()
         {
@@ -8154,31 +8157,37 @@ class z80cpu
 
         if (this.NMIWaiting)
         {
-            this.isHalted=false;
-            elapsedCycles+=11;
-            this.registers.iff1=0;
-            this.NMIWaiting=false;
-            this.pushWord(this.registers.pc);
+            if (this.isHalted) this.pushWord(this.registers.pc+1);
+            else this.pushWord(this.registers.pc);
             this.registers.pc = 0x0066;
+
+            this.registers.iff1=0;
+            this.isHalted=false;
+            this.NMIWaiting=false;
+
+            elapsedCycles+=11;
 
             //console.log("NMI frame "+Math.floor(this.totCycles/59659));
         }
         else if ((this.registers.iff1!=0)&&(this.maskableInterruptWaiting)&&(!this.m_bAfterEI))
         {
-            this.isHalted=false;
-            elapsedCycles+=13;
+            if (this.isHalted) this.pushWord(this.registers.pc+1);
+            else this.pushWord(this.registers.pc);
+            this.registers.pc = 0x0038;
+
             this.registers.iff1=0;
             this.registers.iff2=0;
+
+            this.isHalted=false;
             this.maskableInterruptWaiting = false;
             this.maskableInterruptsEnabled = false;
-            this.pushWord(this.registers.pc);
-            this.registers.pc = 0x0038;
+
+            elapsedCycles+=13;
 
             //console.log("Irq frame "+Math.floor(this.totCycles/59659));
         }
         else if (this.isHalted)
         {
-            // TODO: how many cycles to advance when halted?
             return 4;            
         }
 
@@ -8296,6 +8305,11 @@ class z80cpu
                 elapsedCycles=instrCode[2];
             }
         }
+
+        /*if (elapsedCycles==0)
+        {
+            alert("warnaaaaaaaaaaa");
+        }*/
 
         elapsedCycles+=this.additionalCycles;
         this.totCycles+=elapsedCycles;

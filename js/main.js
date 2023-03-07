@@ -117,6 +117,9 @@ function drawDebugPanel(instructions)
     ycoord+=40;
     ctx.fillText("DPRW:"+glbVDP.dataPortReadWriteAddress.toString(16).padStart(4,'0'),regxpos,ycoord);
 
+    ycoord+=40;
+    ctx.fillText("I:"+glbCPU.maskableInterruptsEnabled,regxpos,ycoord);
+
     // draw memory
     const vramlines=8;
     var ypp=20;
