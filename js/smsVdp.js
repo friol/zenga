@@ -441,6 +441,14 @@ class smsVDP
 			let green = ((curbyte & 0x0c) >> 2) * 85;
 			let blue = ((curbyte & 0x30) >> 4) * 85;
 
+            /*if ((cramIdx+(pal*16))==0)
+            {
+                var oscol=this.colorRam[(this.register07&0x0f)+16];
+                red = (oscol & 0x03) * 85;
+                green = ((oscol & 0x0c) >> 2) * 85;
+                blue = ((oscol & 0x30) >> 4) * 85;
+            }*/
+
             var xtile=x+xt;
             var ytile=y;
 
@@ -656,11 +664,14 @@ class smsVDP
     drawScanlineM2Tile(tilenum,x,y)
     {
         var tileAddr=(tilenum*8);
+        var pattern_table_addr=0;
         var color_table_addr = (this.register03&0x80) << 6;
+
+        pattern_table_addr = (this.register04 & 0x04) << 11;
 
         var realy=y%8;
         tileAddr+=realy;
-        const curbyte=this.vRam[tileAddr];
+        const curbyte=this.vRam[pattern_table_addr+tileAddr];
 
         var color_line = this.vRam[color_table_addr+tileAddr];
         const bg_color = color_line & 0x0F;

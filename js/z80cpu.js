@@ -3852,6 +3852,20 @@ class z80cpu
             self.incPc(2);
         }, "LD A,R", 9, 2, false];
 
+        this.prefixedOpcodes[0x60]=[function()
+        {
+            self.registers.h=self.theMMU.readPort(self.registers.c);
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
+            if ((self.registers.h & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.h == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+            if (self.parityLookUp[self.registers.h]) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
+            self.incPc(2);
+        }, "IN H,(C)", 12, 0, false];
+    
         this.prefixedOpcodes[0x61]=[function()
         {
             self.theMMU.writePort(self.registers.c,self.registers.h);
@@ -3863,7 +3877,21 @@ class z80cpu
             self.executeRrd();
             self.incPc(2);
         }, "RRD", 18, 0, false];
-    
+
+        this.prefixedOpcodes[0x68]=[function()
+        {
+            self.registers.l=self.theMMU.readPort(self.registers.c);
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
+            if ((self.registers.l & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (self.registers.l == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+            if (self.parityLookUp[self.registers.l]) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
+            self.incPc(2);
+        }, "IN L,(C)", 12, 0, false];
+            
         this.prefixedOpcodes[0x69]=[function()
         {
             self.theMMU.writePort(self.registers.c,self.registers.l);
@@ -3887,7 +3915,21 @@ class z80cpu
             self.executeRld();
             self.incPc(2);
         }, "RLD", 18, 0, false];
-    
+
+        this.prefixedOpcodes[0x70]=[function()
+        {
+            const byte=self.theMMU.readPort(self.registers.c);
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
+            if ((byte & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
+            else self.registers.f&=~z80flags.FLAG_S;
+            if (byte == 0) self.registers.f|=z80flags.FLAG_Z;
+            else self.registers.f&=~z80flags.FLAG_Z;
+            if (self.parityLookUp[byte]) self.registers.f|=z80flags.FLAG_PV;
+            else self.registers.f&=~z80flags.FLAG_PV;
+            self.incPc(2);
+        }, "IN (C)", 12, 0, true];
+            
         this.prefixedOpcodes[0x71]=[function() 
         { 
             self.theMMU.writePort(self.registers.c,0);
@@ -5798,7 +5840,13 @@ class z80cpu
             self.registers.a=self.adc_8bit(self.registers.a,self.theMMU.readAddr(addr));
             self.incPc(3); 
         }, "ADC A,(IY+%d)", 19, 1, false];
-    
+
+        this.prefixfdOpcodes[0x94]=[function() 
+        { 
+            self.registers.a=self.sub_8bit(self.registers.a,self.registers.iyh);
+            self.incPc(2); 
+        }, "SUB IYH", 8, 0, true];
+            
         this.prefixfdOpcodes[0x96]=[function() 
         { 
             var m1=self.theMMU.readAddr(self.registers.pc+2);
@@ -6156,6 +6204,12 @@ class z80cpu
             self.registers.b=self.registers.ixh;
             self.incPc(2); 
         }, "LD B,IXH", 8, 0, true];
+
+        this.prefixddOpcodes[0x45]=[function() 
+        {
+            self.registers.b=self.registers.ixl;
+            self.incPc(2); 
+        }, "LD B,IXL", 8, 0, true];
             
         this.prefixddOpcodes[0x46]=[function() 
         {
@@ -6293,6 +6347,12 @@ class z80cpu
             self.incPc(2); 
         }, "LD IXH,A", 8, 0, true];
 
+        this.prefixddOpcodes[0x68]=[function() 
+        {
+            self.registers.ixl=self.registers.b;
+            self.incPc(2); 
+        }, "LD IXL,B", 8, 0, true];
+    
         this.prefixddOpcodes[0x69]=[function() 
         {
             self.registers.ixl=self.registers.c;
@@ -8097,7 +8157,6 @@ class z80cpu
             this.isHalted=false;
             elapsedCycles+=11;
             this.registers.iff1=0;
-            this.registers.iff2=0;
             this.NMIWaiting=false;
             this.pushWord(this.registers.pc);
             this.registers.pc = 0x0066;

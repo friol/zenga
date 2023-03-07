@@ -41,7 +41,7 @@ class smsMmu
         this.mapperSlots = [];
         this.mapperSlotsIdx = [];
         
-        for (let i = 0; i < 64; i++) 
+        for (let i = 0; i < 256; i++) 
         {
 			this.romBanks[i] = new Uint8Array(0x4000);
 		}
@@ -180,7 +180,7 @@ class smsMmu
 			} 
             else 
             {
-				console.log('Bad write address: ' + addr.toString(16));
+				console.log("MMU::can't write to address: " + addr.toString(16));
 			}            
         }
         else if ((addr>=0x8000)&&(addr<=0xbfff))
