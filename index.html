@@ -7,7 +7,7 @@
         <meta name="keywords" content="Sega Master System emulator, coding, emulation, SEGA, games, 1987">
 
         <link rel="icon" type="image/png" href="img/favicon.ico"/>
-        <title>Zenga - version 0.7a</title>
+        <title>Zenga - version 0.8a</title>
 
         <link rel="stylesheet" href="css/main.css"/>
         
@@ -23,15 +23,24 @@
     </head>
 
     <body>
-        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.7a - <span id="fpsSpan"></span></div>
+        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.8a - <span id="fpsSpan"></span></div>
         <canvas width=800 height=400 id="debugCanvas" style="display: none;"></canvas>
         <canvas width=256 height=192 id="smsdisplay"></canvas>
+        <!--
         <div id="fileselector">
             <br/>
             <br/>
             <input type="file" id="cartridgeSelector" onchange="handleCartridgeUpload(this.files)" />
             <br/><br/>
         </div>
+        -->
+
+        <br/>
+        <div id="fileselector">
+        <button style="cursor:pointer" id="romLoaderBtn">Load rom</button>
+        <input type="file" id="cartridgeSelector" style="display:none" onchange="handleCartridgeUpload(this.files)">(load .sms or .sg rom)<br/><br/>
+        </div>
+
         <div id="taglineDiv">z, x and arrows to play, \ to ffwd, p to pause (emulation), o to pause as on the SMS, F2 and F3 to save and load<br/>
         <button id="fsbutton" onclick="fullscreen();" style="display: none;">Fullscreen!</button></div>
         

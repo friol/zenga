@@ -587,6 +587,11 @@ window.onload = (event) =>
 
     document.addEventListener('fullscreenchange', fullscreenchanged);
 
+    document.getElementById('romLoaderBtn').addEventListener('click', () => 
+    { 
+        document.getElementById('cartridgeSelector').click();
+    });
+
     const videocanvas=document.getElementById("smsdisplay");
     glbVideoctx = videocanvas.getContext("2d");
     glbSerializer=new serializer();

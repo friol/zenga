@@ -29,10 +29,11 @@ class smsMmu
 		    this.romIsCodeMasters = true;
         }
 
+        this.cartridgeRamBankSelect=0;
         this.mapperSlot2IsCartridgeRam = false;
 
-        this.cartridgeRam=new Array(0x4000);
-        for (var i=0;i<0x4000;i++)
+        this.cartridgeRam=new Array(0x8000);
+        for (var i=0;i<0x8000;i++)
         {
             this.cartridgeRam[i]=0;
         }
@@ -103,9 +104,6 @@ class smsMmu
             this.mapperSlotsIdx[2]=0;
         }
 
-        /*this.romBanks[0][0x786]=0x00;
-        this.romBanks[0][0x787]=0x00;*/
-
         console.log("MMU::Inited");
     }
 
@@ -145,7 +143,7 @@ class smsMmu
 			// ROM/RAM mapper slot 2.
 			if (this.mapperSlot2IsCartridgeRam) 
             {
-				return this.cartridgeRam[addr - 0x8000];
+				return this.cartridgeRam[addr-0x8000+(this.cartridgeRamBankSelect*0x4000)];
 			} 
             else 
             {
@@ -195,7 +193,7 @@ class smsMmu
 			else if (this.mapperSlot2IsCartridgeRam) 
             {
 				// ROM/RAM mapper slot 2.
-				this.cartridgeRam[addr - 0x8000] = value;
+				this.cartridgeRam[addr - 0x8000 + (this.cartridgeRamBankSelect*0x4000)] = value;
 			} 
             else 
             {
@@ -264,8 +262,13 @@ class smsMmu
 		// Check bit 2: RAM bank select.
 		if ((byte & 0x04) > 0) 
         {
-			throw 'Unimplemented RAM bank select.';
+			//throw 'Unimplemented RAM bank select.';
+            this.cartridgeRamBankSelect=1;
 		}
+        else
+        {
+            this.cartridgeRamBankSelect=0;
+        }
 
 		// Check bit 3: System RAM override.
 		if ((byte & 0x10) > 0) 

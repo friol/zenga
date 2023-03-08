@@ -10,8 +10,6 @@ class smsVDP
 {
     constructor()
     {
-        this.cappaaah=0;
-
         /* video RAM */
         this.vRam=new Array();
         for (var b=0;b<0x4000;b++)
@@ -120,6 +118,11 @@ class smsVDP
             {
                 if (this.register01&0x08) console.log("VDP::240-line screen");
                 else if (this.register01&0x10) console.log("VDP::224-line screen");
+            }
+
+            if (this.register01&0x01)
+            {
+                console.log("VDP::warning: sprites are doubled");
             }
 
             //console.log("VDP::M1="+(((this.register01&0x10)!=0)?1:0));
@@ -827,19 +830,6 @@ class smsVDP
         {
             var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
 
-            // build the screenmap array (yeah, we do this every time, this can be largely optimized)
-            var screenMap=Array();
-            for (var y=0;y<28;y++)
-            {
-                for (var x=0;x<32;x++)
-                {
-                    var word=this.vRam[nameTableBaseAddress];
-                    word|=this.vRam[nameTableBaseAddress+1]<<8;
-                    screenMap.push(word);
-                    nameTableBaseAddress+=2;             
-                }
-            }
-
             // find the tile we have to draw and find the y row in this tile 
             // things get complicated with the finescroll y value, but we'll do it
 
@@ -852,17 +842,27 @@ class smsVDP
             var adder=0;
             if ((finescrolly+(scanlineNum%8))>=8) adder=1;
 
+            var screenMap=Array();
+            nameTableBaseAddress+=(((yScreenMap+initialRow+adder)%28)*32)*2;
+            for (var x=0;x<32;x++)
+            {
+                var word=this.vRam[nameTableBaseAddress];
+                word|=this.vRam[nameTableBaseAddress+1]<<8;
+                screenMap.push(word);
+                nameTableBaseAddress+=2;             
+            }
+
             for (var x=0;x<32;x++)
             {
                 var word;
                 if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
                 {
-                    word=screenMap[((x)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                    word=screenMap[x];
                     finescrollx=0;
                 }
                 else
                 {
-                    word=screenMap[((x+initialTile)%32)+(((yScreenMap+initialRow+adder)%28)*32)];
+                    word=screenMap[((x+initialTile)%32)];
                 }
 
                 const flipH=(word>>9)&0x01;
@@ -932,7 +932,11 @@ class smsVDP
                 var spriteIdx=this.vRam[sat + (s*2) +(0x10*0x8)+1];
 
                 var spritesAre8x16=false;
-                if ((this.register00&0x04)&&(this.register01&0x02)) spritesAre8x16=true;
+                if ((this.register00&0x04)&&(this.register01&0x02)) 
+                {
+                    spritesAre8x16=true;
+                    spriteIdx&=0xfe;
+                }
 
                 if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
                 {
