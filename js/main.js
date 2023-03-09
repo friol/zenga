@@ -281,6 +281,41 @@ function drawScreen()
     glbVDP.hyperBlit(glbVideoctx,0);
 }
 
+function loadBinary(fname,abuf)
+{
+    glbCartridge=new cartridge(fname);
+    glbCartridge.load(abuf);
+    glbVDP=new smsVDP();
+    glbSoundchip=new sn79489();
+    glbMMU=new smsMmu(glbCartridge,glbVDP,glbSoundchip);
+    glbCPU=new z80cpu(glbMMU);
+    glbSoundchip.startMix(glbCPU);
+
+    //glbEmulatorStatus=0;
+    glbEmulatorStatus=1;
+    lastLoop = new Date;
+    thisLoop=undefined;
+    hideDebugStuff();
+    emulate();
+}
+
+function loadSoftware(th)
+{
+	var thisInstance=this;
+
+	if (th.value=="run") return;
+
+    var oReq = new XMLHttpRequest();
+    oReq.open("GET", "roms/"+th.value, true);
+    oReq.responseType = "arraybuffer";
+    oReq.onload = function(oEvent) 
+    {
+      var arrayBuffer = oReq.response;
+      loadBinary(th.value,arrayBuffer);
+    };
+    oReq.send();
+}
+
 function handleCartridgeUpload(fls)
 {
 	var arrayBuffer;
@@ -298,21 +333,7 @@ function handleCartridgeUpload(fls)
         console.log("Loading cartridge ["+fname+"]");
 
 		arrayBuffer = event.target.result;
-
-        glbCartridge=new cartridge(fname);
-        glbCartridge.load(arrayBuffer);
-        glbVDP=new smsVDP();
-        glbSoundchip=new sn79489();
-        glbMMU=new smsMmu(glbCartridge,glbVDP,glbSoundchip);
-        glbCPU=new z80cpu(glbMMU);
-        glbSoundchip.startMix(glbCPU);
-
-        //glbEmulatorStatus=0;
-        glbEmulatorStatus=1;
-        lastLoop = new Date;
-        thisLoop=undefined;
-        hideDebugStuff();
-        emulate();
+        loadBinary(fname,arrayBuffer);
 	};
 	fileReader.readAsArrayBuffer(fls[0]);	
 }
@@ -450,10 +471,10 @@ function fullscreenchanged(event)
 function hideDebugStuff()
 {
     document.getElementById("debugCanvas").style.display="none";
-    //document.getElementById("debugButtons").style.display="none";
     document.getElementById("smsdisplay").style.width="768px";
     document.getElementById("smsdisplay").style.height="576px";
     document.getElementById("cartridgeSelector").style.display="none";
+    document.getElementById("softLoader").style.display="none";
     document.getElementById("fileselector").style.display="none";
     document.getElementById("fsbutton").style.display="block";
 }

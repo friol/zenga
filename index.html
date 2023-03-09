@@ -41,10 +41,26 @@
         <input type="file" id="cartridgeSelector" style="display:none" onchange="handleCartridgeUpload(this.files)">(load .sms or .sg rom)<br/><br/>
         </div>
 
-        <div id="taglineDiv">z, x and arrows to play, \ to ffwd, p to pause (emulation), o to pause as on the SMS, F2 and F3 to save and load<br/>
+        <!-- software selector -->
+        <span id="softLoader" style="float:left;clear:both;margin-top:10px">Load pd game/demo: 
+            <select name="software" id="softwareSelector" onchange="loadSoftware(this)">
+                <option value="run">--</option>
+                <option value="GenesisProject-Lambo.sms">Lambo/Genesys Project (demo)</option>
+                <option value="2048.sms">2048 (homebrew game)</option>
+                <option value="DTS_Final_DemoVersion.sms">Do The Same (homebrew game)</option>
+                <option value="BaraBuruu-SMS-1.00.sms">Bara Buru (homebrew game)</option>
+                <option value="FlightOfPigarus-SMS-1.11.sms">Flight Of Pigarus (homebrew game)</option>
+                <option value="rick.sms">Jewel Jones (homebrew game demo)</option>
+                <option value="lander2_v0C.sms">Lander2 (homebrew game)</option>
+            </select>
+        </span>
+
+        <!-- instructions -->
+        <div id="taglineDiv" style="float:left;clear:both;margin-top:10px">z, x and arrows to play, \ to ffwd, p to pause (emulation), o to pause as on the SMS, F2 and F3 to save and load<br/>
         <button id="fsbutton" onclick="fullscreen();" style="display: none;">Fullscreen!</button></div>
-        
-        <div id="debugButtons" style="display: none;">
+            
+        <!-- debug zone -->        
+        <div id="debugButtons" style="display: none; float:left;clear:both">
             <br/><br/>
             <button onclick="runCPUTests(0);">Test unprefixed opcodes!</button>
             <button onclick="runCPUTests(0xcb);">Test 0xCB opcodes!</button>
