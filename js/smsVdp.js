@@ -836,7 +836,7 @@ class smsVDP
             var initialTile=32-((this.register08)>>3);
             var finescrollx=this.register08&0x7;
             var initialRow=Math.floor((this.register09)/8);
-            const finescrolly=(this.register09%8);
+            var finescrolly=(this.register09%8);
 
             const yScreenMap=Math.floor(scanlineNum/8);
             var adder=0;
@@ -852,10 +852,30 @@ class smsVDP
                 nameTableBaseAddress+=2;             
             }
 
+            var screenMapNoscroll=Array();
+            if (this.register00&0x80) /* D7 - 1= Disable vertical scrolling for columns 24-31 */
+            {
+                nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+                nameTableBaseAddress+=(((yScreenMap)%28)*32)*2;
+                for (var x=0;x<32;x++)
+                {
+                    var word=this.vRam[nameTableBaseAddress];
+                    word|=this.vRam[nameTableBaseAddress+1]<<8;
+                    screenMapNoscroll.push(word);
+                    nameTableBaseAddress+=2;             
+                }
+            }
+
             for (var x=0;x<32;x++)
             {
                 var word;
-                if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
+
+                if ((x>=24)&&(this.register00&0x80))
+                {
+                    word=screenMapNoscroll[((x+initialTile)%32)];
+                    finescrolly=0;
+                }
+                else if ((this.register00&0x40)&&(scanlineNum<16)) /* D6 - 1= Disable horizontal scrolling for rows 0-1 */
                 {
                     word=screenMap[x];
                     finescrollx=0;
