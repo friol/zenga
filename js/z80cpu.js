@@ -3712,6 +3712,12 @@ class z80cpu
             self.registers.iff1=self.registers.iff2;
         }, "RETI", 14, 0, false];
 
+        this.prefixedOpcodes[0x4f]=[function()
+        {
+            self.registers.r=self.registers.a;
+            self.incPc(2);
+        }, "LD R,A", 9, 0, false];
+    
         this.prefixedOpcodes[0x50]=[function()
         {
             // TODO: understand flags
@@ -4566,6 +4572,12 @@ class z80cpu
             self.incPc(2); 
         }, "RES 0,E", 8, 0, false];
 
+        this.prefixcbOpcodes[0x84]=[function()
+        {
+            self.registers.h&=~0x01;
+            self.incPc(2); 
+        }, "RES 0,H", 8, 0, false];
+    
         this.prefixcbOpcodes[0x85]=[function()
         {
             self.registers.l&=~0x01;
@@ -4955,7 +4967,13 @@ class z80cpu
             self.registers.e|=0x01;
             self.incPc(2); 
         }, "SET 0,E", 8, 0, false];
-    
+
+        this.prefixcbOpcodes[0xc4]=[function()
+        {
+            self.registers.h|=0x01;
+            self.incPc(2); 
+        }, "SET 0,H", 8, 0, false];
+            
         this.prefixcbOpcodes[0xc5]=[function()
         {
             self.registers.l|=0x01;
@@ -6436,6 +6454,12 @@ class z80cpu
             self.registers.ixl=self.registers.e;
             self.incPc(2); 
         }, "LD IXL,E", 8, 0, true];
+
+        this.prefixddOpcodes[0x6c]=[function() 
+        {
+            self.registers.ixl=self.registers.ixh;
+            self.incPc(2); 
+        }, "LD IXL,IXH", 8, 0, true];
             
         this.prefixddOpcodes[0x6e]=[function() 
         {

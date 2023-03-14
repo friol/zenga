@@ -451,7 +451,7 @@ function fullscreenchanged(event)
         document.getElementById("fsbutton").style.display="none";
         document.getElementById("smsdisplay").style.position="absolute";
         document.getElementById("smsdisplay").style.width="100%";
-        document.getElementById("smsdisplay").style.height="100%";
+        document.getElementById("smsdisplay").style.height="125%";
         document.body.style.padding='0';
         document.body.style.margin='0';
     }
@@ -462,7 +462,7 @@ function fullscreenchanged(event)
         document.getElementById("fsbutton").style.display="block";
         document.getElementById("smsdisplay").style.position="relative";
         document.getElementById("smsdisplay").style.width="768px";
-        document.getElementById("smsdisplay").style.height="576px";
+        document.getElementById("smsdisplay").style.height="720px";
         document.body.style.padding='5px';
         document.body.style.margin='5px';
     }
@@ -472,7 +472,7 @@ function hideDebugStuff()
 {
     document.getElementById("debugCanvas").style.display="none";
     document.getElementById("smsdisplay").style.width="768px";
-    document.getElementById("smsdisplay").style.height="576px";
+    document.getElementById("smsdisplay").style.height="720px";
     document.getElementById("cartridgeSelector").style.display="none";
     document.getElementById("softLoader").style.display="none";
     document.getElementById("fileselector").style.display="none";
@@ -484,7 +484,7 @@ function showDebugStuff()
     document.getElementById("debugCanvas").style.display="block";
     document.getElementById("debugButtons").style.display="block";
     document.getElementById("smsdisplay").style.width="256px";
-    document.getElementById("smsdisplay").style.height="192px";
+    document.getElementById("smsdisplay").style.height="240px";
 }
 
 window.onload = (event) => 

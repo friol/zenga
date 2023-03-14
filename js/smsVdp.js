@@ -59,10 +59,14 @@ class smsVDP
         this.register0a=0xff; // line counter
 
         this.glbResolutionX=256;
-        this.glbResolutionY=192;
+        this.glbResolutionY=240;
+        this.yScreenLines=192;
 
         this.glbFrameBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY*4);
         this.priBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY);
+        this.spriteBuffer=new Uint8ClampedArray(this.glbResolutionX*this.glbResolutionY);
+
+        this.cleanSpriteBuffer();
 
         this.sg1000palette=[
             0,0,0, 
@@ -86,6 +90,17 @@ class smsVDP
         this.glbCanvasRenderer=undefined;
     }
 
+    cleanSpriteBuffer()
+    {
+        for (var y=0;y<this.glbResolutionY;y++)
+        {
+            for (var x=0;x<this.glbResolutionX;x++)
+            {
+                this.spriteBuffer[x+(y*this.glbResolutionX)]=0;
+            }
+        }
+    }
+
     writeByteToRegister(registerIndex, dataByte)
     {
         if (registerIndex==0)
@@ -99,12 +114,6 @@ class smsVDP
                 console.log("VDP::warning: Use TMS9918 modes");
                 console.log("VDP::M2="+(((this.register00&0x02)!=0)?1:0));
             }
-
-            //D4 - (IE1) 1= Line interrupt enable
-            /*if (this.register00&0x10)
-            {
-                console.log("VDP::warning: line interrupt enabled");
-            }*/
         }
         else if (registerIndex==1)
         {
@@ -116,8 +125,16 @@ class smsVDP
 
             if (this.register00&0x02)
             {
-                if (this.register01&0x08) console.log("VDP::240-line screen");
-                else if (this.register01&0x10) console.log("VDP::224-line screen");
+                if (this.register01&0x08) 
+                {
+                    //console.log("VDP::240-line screen");
+                    this.yScreenLines=240;
+                }
+                else if (this.register01&0x10) 
+                {
+                    //console.log("VDP::224-line screen");
+                    this.yScreenLines=224;
+                }
             }
 
             if (this.register01&0x01)
@@ -206,7 +223,7 @@ class smsVDP
         {
 			this.controlWord=b;
 			this.controlWordFlag=true;
-            //this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
+            this.dataPortReadWriteAddress = (this.dataPortReadWriteAddress & 0x3f00) | b;
 		} 
         else 
         {
@@ -351,7 +368,7 @@ class smsVDP
         }        
     }
 
-    drawTile(ctx,addr,x,y,pal,fliph,flipv)
+    /*drawTile(ctx,addr,x,y,pal,fliph,flipv)
     {
         var addrInc=4;
         if (flipv) 
@@ -404,7 +421,7 @@ class smsVDP
 
             addr+=addrInc;
         }        
-    }
+    }*/
 
     drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly,priFlag)
     {
@@ -457,7 +474,7 @@ class smsVDP
             var xtile=x+xt;
             var ytile=y;
 
-            if ((xtile>=0)&&(xtile<256)&&(ytile>=0)&&(ytile<192))
+            if ((xtile>=0)&&(xtile<256)&&(ytile>=0)&&(ytile<this.yScreenLines))
             {
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+0]=red;
                 this.glbFrameBuffer[(x+xt+((y)*this.glbResolutionX))*4+1]=green;
@@ -505,8 +522,17 @@ class smsVDP
                 const cx=spriteX+xt;
                 const cy=scanlineNum;
 
-                if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.glbResolutionY))
+                if ((cx>=0)&&(cx<this.glbResolutionX)&&(cy>=0)&&(cy<this.yScreenLines))
                 {
+                    if (this.spriteBuffer[(spriteX+xt+((cy)*this.glbResolutionX))]==0)
+                    {
+                        this.spriteBuffer[(spriteX+xt+((cy)*this.glbResolutionX))]=1;
+                    }
+                    else
+                    {
+                        this.statusFlags|=0x20;
+                    }
+
                     if (this.priBuffer[(spriteX+xt+((cy)*this.glbResolutionX))]==0)
                     {
                         this.glbFrameBuffer[(spriteX+xt+((cy)*this.glbResolutionX))*4+0]=red;
@@ -550,10 +576,9 @@ class smsVDP
 
     hyperBlit(ctx,filtertype)
     {
+        // apply a filter?
         if (filtertype==1)
         {
-            // apply a filter
-
             for (var y=0;y<this.glbResolutionY;y+=2)
             {
                 var pos=(y*this.glbResolutionX)*4;
@@ -594,10 +619,27 @@ class smsVDP
             var raiseInterrupt=false;
             this.hcounter%=this.clockCyclesPerScanline;
 
-            // vcounter
-            if (this.currentScanlineIndex == 219) 
+            var vCounterJumpOnScanlineIndex = 219;
+            var vCounterJumpToIndex = 213;    
+            var interruptAfterScanlineIndex=192;
+
+            if (this.yScreenLines==224)        
             {
-                this.vcounter = 213;
+                vCounterJumpOnScanlineIndex = 235;
+                vCounterJumpToIndex = 229;   
+                interruptAfterScanlineIndex=224; 
+            }
+            else if (this.yScreenLines==240)
+            {
+                vCounterJumpOnScanlineIndex = 256;
+                vCounterJumpToIndex = 0;    
+                interruptAfterScanlineIndex=240;
+            }
+
+            // jump vcounter
+            if (this.currentScanlineIndex == vCounterJumpOnScanlineIndex) 
+            {
+                this.vcounter = vCounterJumpToIndex;
             } 
             else 
             {
@@ -627,13 +669,13 @@ class smsVDP
                 this.lineCounter = this.register0a;
             }            
 
-            if (this.currentScanlineIndex==192)
+            if (this.currentScanlineIndex==interruptAfterScanlineIndex)
             {
                 this.statusFlags|=0x80;
             }
 
             // frame interrupt
-            if ((this.currentScanlineIndex==193)/*&&(this.statusFlags&0x80)*/)
+            if (this.currentScanlineIndex==(interruptAfterScanlineIndex+1))
             {
                 if ((this.register01&0x20)!=0)
                 {
@@ -654,7 +696,7 @@ class smsVDP
 
             if (this.currentScanlineIndex==0)
             {
-                //this.drawScanline(262);
+                this.cleanSpriteBuffer();
                 return true;
             }
             else
@@ -803,7 +845,7 @@ class smsVDP
     drawScanline(scanlineNum)
     {
         if (scanlineNum<0) return;
-        if (scanlineNum>=192) return;
+        if (scanlineNum>=this.yScreenLines) return;
 
         var fbY=(scanlineNum*this.glbResolutionX)*4;
 
@@ -828,7 +870,17 @@ class smsVDP
         // mode M4
         if ((this.register00&0x04)!=0)
         {
-            var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+            //var nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
+            
+            var nameTableBaseAddressMask=0x0e;
+            var nameTableBaseAddressOffset=0;
+            if ((this.yScreenLines==224)||(this.yScreenLines==240))
+            {
+                nameTableBaseAddressMask=0x0c;
+                nameTableBaseAddressOffset=0x700;
+            }
+            
+            var nameTableBaseAddress=((this.nameTableBaseAddress&nameTableBaseAddressMask)<<10)+nameTableBaseAddressOffset;
 
             // find the tile we have to draw and find the y row in this tile 
             // things get complicated with the finescroll y value, but we'll do it
@@ -838,12 +890,18 @@ class smsVDP
             var initialRow=Math.floor((this.register09)/8);
             var finescrolly=(this.register09%8);
 
+            var smLen=28;
+            if ((this.yScreenLines==224)||(this.yScreenLines==240))
+            {
+                smLen=32;
+            }
+
             const yScreenMap=Math.floor(scanlineNum/8);
             var adder=0;
             if ((finescrolly+(scanlineNum%8))>=8) adder=1;
 
             var screenMap=Array();
-            nameTableBaseAddress+=(((yScreenMap+initialRow+adder)%28)*32)*2;
+            nameTableBaseAddress+=(((yScreenMap+initialRow+adder)%smLen)*32)*2;
             for (var x=0;x<32;x++)
             {
                 var word=this.vRam[nameTableBaseAddress];
@@ -856,7 +914,7 @@ class smsVDP
             if (this.register00&0x80) /* D7 - 1= Disable vertical scrolling for columns 24-31 */
             {
                 nameTableBaseAddress=((this.nameTableBaseAddress>>1)&0x07)<<11;
-                nameTableBaseAddress+=(((yScreenMap)%28)*32)*2;
+                nameTableBaseAddress+=(((yScreenMap)%smLen)*32)*2;
                 for (var x=0;x<32;x++)
                 {
                     var word=this.vRam[nameTableBaseAddress];
@@ -928,16 +986,23 @@ class smsVDP
         {
             var sat=this.spriteAttributeTableBaseAddress;
 
+            var stopDrawingSpritesWhenLine208IsFound=true;
+            if ((this.yScreenLines==224)||(this.yScreenLines==240))
+            {
+                stopDrawingSpritesWhenLine208IsFound=false;
+            }
+
+            var numSpritesDrawn=0;
             for (var s = 0; s < 64; s++) 
             {
                 var spriteY=this.vRam[sat+s];
-                if (spriteY == 0xd0)
+                if ((spriteY == 0xd0)&&stopDrawingSpritesWhenLine208IsFound)
                 {
                     break;
                 }
                 spriteY++;
 
-                if (spriteY>0xd0)
+                if ((spriteY>0xd0)&&stopDrawingSpritesWhenLine208IsFound)
                 {
                     spriteY -= 0x100;
                 }
@@ -961,6 +1026,7 @@ class smsVDP
                 if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
                 {
                     this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY);
+                    numSpritesDrawn++;
                 }
 
                 // check for 8x16 sprites
@@ -972,8 +1038,14 @@ class smsVDP
                     if ((scanlineNum>=(spriteY+8))&&(scanlineNum<(spriteY+16)))
                     {
                         this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
+                        numSpritesDrawn++;
                     }
                 }
+            }
+
+            if (numSpritesDrawn>8)
+            {
+                this.statusFlags|=0x40;
             }
         }
         else if ((this.register00&0x02)!=0)
