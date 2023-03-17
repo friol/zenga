@@ -7,7 +7,7 @@
         <meta name="keywords" content="Sega Master System emulator, coding, emulation, SEGA, games, 1987">
 
         <link rel="icon" type="image/png" href="img/favicon.ico"/>
-        <title>Zenga - version 0.8a</title>
+        <title>Zenga - version 0.9a</title>
 
         <link rel="stylesheet" href="css/main.css"/>
         
@@ -23,7 +23,7 @@
     </head>
 
     <body>
-        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.8a - <span id="fpsSpan"></span></div>
+        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.9a - <span id="fpsSpan"></span></div>
         <canvas width=800 height=400 id="debugCanvas" style="display: none;"></canvas>
         <!--<canvas width=256 height=192 id="smsdisplay"></canvas>-->
         <canvas width=256 height=240 id="smsdisplay"></canvas>
@@ -39,6 +39,7 @@
             <select name="software" id="softwareSelector" onchange="loadSoftware(this)">
                 <option value="run">--</option>
                 <option value="GenesisProject-Lambo.sms">Lambo/Genesys Project (demo)</option>
+                <option value="Be No Sqr 1.01.sms">Be No Sqr (demo/PAL)</option>
                 <option value="2048.sms">2048 (homebrew game)</option>
                 <option value="DTS_Final_DemoVersion.sms">Do The Same (homebrew game)</option>
                 <option value="BaraBuruu-SMS-1.00.sms">Bara Buru (homebrew game)</option>
@@ -48,6 +49,14 @@
                 <option value="WingWarriors.sms">Wing Warriors (homebrew game)</option>
                 <option value="monkeylad.sms">Monkey Lad (homebrew game)</option>
                 <option value="BruceLee-SMS-1.00.sms">Bruce Lee (homebrew game)</option>
+            </select>
+        </span>
+
+        <!-- NTSC/PAL selector -->
+        <span id="vdpMode" style="float:left;clear:both;margin-top:10px">TV Standard
+            <select name="vdpMode" id="vdpModeSelector" onchange="setVdpStandard(this)">
+                <option value="NTSC">NTSC</option>
+                <option value="PAL">PAL</option>
             </select>
         </span>
 

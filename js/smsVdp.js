@@ -6,9 +6,15 @@ const vdpDataPortWriteMode =
     toCRAM: 1
 };
 
+const vdpStandard =
+{
+    vdpNTSC: 0,
+    vdpPAL: 1
+};
+
 class smsVDP
 {
-    constructor()
+    constructor(vdpmode)
     {
         /* video RAM */
         this.vRam=new Array();
@@ -24,8 +30,23 @@ class smsVDP
             this.colorRam.push(0);
         }
 
-        this.clockCyclesPerScanline=228;
-        this.currentScanlineIndex=0; // 0-262
+        if (vdpmode==0) this.vdpStd=vdpStandard.vdpNTSC;
+        else this.vdpStd=vdpStandard.vdpPAL;
+
+        if (this.vdpStd==vdpStandard.vdpNTSC)
+        {
+            this.numberOfScanlines=262;
+            this.clockCyclesPerScanline=228;
+            console.log("VDP::NTSC Standard");
+        }
+        else
+        {
+            this.numberOfScanlines=313;
+            this.clockCyclesPerScanline=228;
+            console.log("VDP::PAL Standard");
+        }
+
+        this.currentScanlineIndex=0; // 0-number of scanlines NTSC/PAL
         this.lineCounter=0;
 
         this.controlWordFlag=false;
@@ -368,61 +389,6 @@ class smsVDP
         }        
     }
 
-    /*drawTile(ctx,addr,x,y,pal,fliph,flipv)
-    {
-        var addrInc=4;
-        if (flipv) 
-        {
-            addr+=7*4;
-            addrInc=-4;
-        }
-
-        for (var yt=0;yt<8;yt++)
-        {
-            for (var xt=0;xt<8;xt++)
-            {
-                var byte0=this.vRam[addr]
-                var byte1=this.vRam[addr+1]
-                var byte2=this.vRam[addr+2]
-                var byte3=this.vRam[addr+3]
-
-                if (fliph)
-                {
-                    byte0>>=xt; byte0&=1;
-                    byte1>>=xt; byte1&=1;
-                    byte2>>=xt; byte2&=1;
-                    byte3>>=xt; byte3&=1;
-                }
-                else
-                {
-                    byte0>>=(7-xt); byte0&=1;
-                    byte1>>=(7-xt); byte1&=1;
-                    byte2>>=(7-xt); byte2&=1;
-                    byte3>>=(7-xt); byte3&=1;
-                }
-
-                var cramIdx=(byte0|(byte1<<1)|(byte2<<2)|(byte3<<3))&0x0f;
-                var curbyte=this.colorRam[cramIdx+(pal*16)];
-                var red=(curbyte&0x03)*64;
-                var green=((curbyte>>2)&0x03)*64;
-                var blue=((curbyte>>4)&0x03)*64;
-
-                var xtile=x+xt;
-                var ytile=y+yt;
-
-                if ((xtile>=0)&&(xtile<256)&&(ytile>=0)&&(ytile<192))
-                {
-                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+0]=red;
-                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+1]=green;
-                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+2]=blue;
-                    this.glbFrameBuffer[(x+xt+((y+yt)*this.glbResolutionX))*4+3]=255;
-                }
-            }
-
-            addr+=addrInc;
-        }        
-    }*/
-
     drawLineTile(addr,x,y,pal,fliph,flipv,finescrolly,priFlag)
     {
         if (!flipv)
@@ -619,20 +585,48 @@ class smsVDP
             var raiseInterrupt=false;
             this.hcounter%=this.clockCyclesPerScanline;
 
-            var vCounterJumpOnScanlineIndex = 219;
-            var vCounterJumpToIndex = 213;    
+            // TODO check and make those class-wide
+            if (this.vdpStd==vdpStandard.vdpNTSC)
+            {
+                var vCounterJumpOnScanlineIndex = 219;
+                var vCounterJumpToIndex = 213;   
+            }
+            else
+            {
+                var vCounterJumpOnScanlineIndex = 243;
+                var vCounterJumpToIndex = 186;    
+            }
+
             var interruptAfterScanlineIndex=192;
 
             if (this.yScreenLines==224)        
             {
-                vCounterJumpOnScanlineIndex = 235;
-                vCounterJumpToIndex = 229;   
+                if (this.vdpStd==vdpStandard.vdpNTSC)
+                {
+                    vCounterJumpOnScanlineIndex = 235;
+                    vCounterJumpToIndex = 229;   
+                }
+                else
+                {
+                    vCounterJumpOnScanlineIndex = 256;
+                    vCounterJumpToIndex = 0xca+1;   
+                }
+                
                 interruptAfterScanlineIndex=224; 
             }
             else if (this.yScreenLines==240)
             {
-                vCounterJumpOnScanlineIndex = 256;
-                vCounterJumpToIndex = 0;    
+                if (this.vdpStd==vdpStandard.vdpNTSC)
+                {
+                    vCounterJumpOnScanlineIndex = 256;
+                    vCounterJumpToIndex = 0;    
+                }
+                else
+                {
+                    vCounterJumpOnScanlineIndex = 256;
+                    vCounterJumpToIndex = 0xd2+1;    
+                }
+                
                 interruptAfterScanlineIndex=240;
             }
 
@@ -689,7 +683,7 @@ class smsVDP
             }
 
             this.currentScanlineIndex++;
-            if (this.currentScanlineIndex == 262) 
+            if (this.currentScanlineIndex == this.numberOfScanlines) 
             {
                 this.currentScanlineIndex = 0;
             }            

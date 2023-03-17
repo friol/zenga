@@ -5417,7 +5417,16 @@ class z80cpu
             self.registers.iyh=m1;
             self.incPc(3); 
         }, "LD IYH,%d", 11, 1, true];
-    
+
+        this.prefixfdOpcodes[0x29]=[function() 
+        {
+            var iy=self.registers.iyl|(self.registers.iyh<<8);
+            var res=self.add_16bit(iy,iy);
+            self.registers.iyl=res&0xff;
+            self.registers.iyh=res>>8;
+            self.incPc(2); 
+        }, "ADD IY,IY", 15, 0, false];
+            
         this.prefixfdOpcodes[0x2a]=[function() 
         {
             var m1=self.theMMU.readAddr(self.registers.pc+2);
@@ -5641,6 +5650,12 @@ class z80cpu
             self.registers.iyh=self.registers.b;
             self.incPc(2); 
         }, "LD IYH,B", 8, 0, true];
+
+        this.prefixfdOpcodes[0x62]=[function() 
+        {
+            self.registers.iyh=self.registers.d;
+            self.incPc(2); 
+        }, "LD IYH,D", 8, 0, true];
             
         this.prefixfdOpcodes[0x66]=[function() 
         {

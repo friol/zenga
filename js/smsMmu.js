@@ -1,5 +1,12 @@
 /* sms mmu */
 
+const smsMapperType = 
+{
+    mapperSEGA: 0,
+    mapperCodemasters: 1,
+    mapperKorean: 2
+};
+
 class smsMmu
 {
     constructor(theCart,theVDP,theSoundchip)
@@ -7,6 +14,7 @@ class smsMmu
         this.theCartridge=theCart;
         this.theVDP=theVDP;
         this.theSoundchip=theSoundchip;
+        this.mapperType=smsMapperType.mapperSEGA;
 
         this.portAB=0xff;
 
@@ -18,15 +26,25 @@ class smsMmu
             this.ram8k[i]=0;
         }
 
-        // banking
+        // Codemasters mapper
 
-        this.romIsCodeMasters=false;
         let checksum1 = (theCart.cartridgeRom[0x7fe7] << 8) | theCart.cartridgeRom[0x7fe6];
 		let checksum2 = (theCart.cartridgeRom[0x7fe9] << 8) | theCart.cartridgeRom[0x7fe8];
         if ((0x10000 - checksum1) == checksum2)
         {
             console.log("MMU::ROM is from Codemasters");
-		    this.romIsCodeMasters = true;
+		    this.mapperType=smsMapperType.mapperCodemasters;
+        }
+
+        // Korean mapper
+        if (
+            (this.theCartridge.romChecksum==0x5a7b2220) || // dodgeball king
+            (this.theCartridge.romChecksum==0x224d46cf) || // sangokushi 3
+            (this.theCartridge.romChecksum==0x324884ba) // jang pung 3
+            )
+        {
+            console.log("MMU::Identified as Korean mapper");
+            this.mapperType=smsMapperType.mapperKorean;
         }
 
         this.cartridgeRamBankSelect=0;
@@ -85,7 +103,7 @@ class smsMmu
             }
         }
 
-        if (!this.romIsCodeMasters)
+        if (this.mapperType==smsMapperType.mapperSEGA)
         {
             // SEGA mapper
             for (let i = 0; i < 3; i++) 
@@ -94,7 +112,7 @@ class smsMmu
                 this.mapperSlotsIdx[i] = i < this.romBanks.length ? i : -1;
             }
         }
-        else
+        else if ((this.mapperType==smsMapperType.mapperCodemasters)||(this.mapperType==smsMapperType.mapperKorean))
         {
 	    	this.mapperSlots[0] = this.romBanks[0];
 	    	this.mapperSlots[1] = this.romBanks[1];
@@ -114,7 +132,7 @@ class smsMmu
         /* When mapping in slot 0, the first 1KB is unaffected, in order to preserve the interrupt vectors. */
         if (addr <= 0x03ff) 
         {
-            if (this.romIsCodeMasters) 
+            if ((this.mapperType==smsMapperType.mapperCodemasters)||(this.mapperType==smsMapperType.mapperKorean)) 
             {
 				let mapperSlot = this.mapperSlots[0];
 				return (mapperSlot != null ? mapperSlot[addr] : 0);
@@ -171,11 +189,11 @@ class smsMmu
     {
         if (addr<0x8000)
         {
-            if (this.romIsCodeMasters && addr == 0x0000) 
+            if ((this.mapperType==smsMapperType.mapperCodemasters) && addr == 0x0000) 
             {
 				this.setMapperSlot(0, value);
 			} 
-            else if (this.romIsCodeMasters && addr == 0x4000) 
+            else if ((this.mapperType==smsMapperType.mapperCodemasters) && addr == 0x4000) 
             {
 				this.setMapperSlot(1, value);
 			} 
@@ -186,10 +204,14 @@ class smsMmu
         }
         else if ((addr>=0x8000)&&(addr<=0xbfff))
         {
-            if (this.romIsCodeMasters && addr == 0x8000) 
+            if ((this.mapperType==smsMapperType.mapperCodemasters) && addr == 0x8000) 
             {
 				this.setMapperSlot(2, value);
 			}
+            else if ((this.mapperType==smsMapperType.mapperKorean) && addr == 0xa000) 
+            {
+				this.setMapperSlot(2, value);
+            }
 			else if (this.mapperSlot2IsCartridgeRam) 
             {
 				// ROM/RAM mapper slot 2.
@@ -209,7 +231,7 @@ class smsMmu
         {
             this.ram8k[addr-0xe000]=value;
 
-            if (!this.romIsCodeMasters) 
+            if (this.mapperType==smsMapperType.mapperSEGA) 
             {
                 // SEGA mapper control addresses
                 if (addr == 0xfffc) 

@@ -71,6 +71,31 @@ class cartridge
         }
     }
 
+    calcChecksum()
+    {
+        var cs=0;
+
+        if ((this.cartridgeRom.length%4)!=0)
+        {
+            throw("Cartridge::Error: ROM lenght not multiple of 4, can't calculate checksum");
+        }
+
+        for (var i=0;i<this.cartridgeRom.length;i+=4)
+        {
+            var u32=0;
+            u32=this.cartridgeRom[i];
+            u32|=this.cartridgeRom[i+1]<<8;
+            u32|=this.cartridgeRom[i+2]<<16;
+            u32|=this.cartridgeRom[i+3]<<24;
+
+            cs+=u32;
+            cs&=0xffffffff;       
+        }
+
+        cs=Math.abs(cs);     
+        return cs;
+    }
+
     load(buf)
     {
         this.cartridgeSize=buf.byteLength;
@@ -98,6 +123,10 @@ class cartridge
 
 			this.cartridgeRom = tempRomBytes;
 		}
+
+        // calculate checksum of ROM
+        this.romChecksum=this.calcChecksum();
+        console.log("Cartridge::Checksum is "+this.romChecksum.toString(16).padStart(8,'0'));
 
         // check for header
         var header=new Array();

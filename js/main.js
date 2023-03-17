@@ -30,6 +30,7 @@ var glbFrames=0;
 var glbSerializer;
 var glbSerCounterL=-1;
 var glbSerCounterS=-1;
+var glbVdpMode=0; // 0 NTSC, 1 PAL
 
 //
 
@@ -285,7 +286,7 @@ function loadBinary(fname,abuf)
 {
     glbCartridge=new cartridge(fname);
     glbCartridge.load(abuf);
-    glbVDP=new smsVDP();
+    glbVDP=new smsVDP(glbVdpMode);
     glbSoundchip=new sn79489();
     glbMMU=new smsMmu(glbCartridge,glbVDP,glbSoundchip);
     glbCPU=new z80cpu(glbMMU);
@@ -297,6 +298,12 @@ function loadBinary(fname,abuf)
     thisLoop=undefined;
     hideDebugStuff();
     emulate();
+}
+
+function setVdpStandard(th)
+{
+	if (th.value=="NTSC") glbVdpMode=0;
+	if (th.value=="PAL") glbVdpMode=1;
 }
 
 function loadSoftware(th)
@@ -449,6 +456,7 @@ function fullscreenchanged(event)
         document.getElementById("titleDiv").style.display="none";
         document.getElementById("taglineDiv").style.display="none";
         document.getElementById("fsbutton").style.display="none";
+        document.getElementById("vdpMode").style.display="none";
         document.getElementById("smsdisplay").style.position="absolute";
         document.getElementById("smsdisplay").style.width="100%";
         document.getElementById("smsdisplay").style.height="125%";
@@ -460,6 +468,7 @@ function fullscreenchanged(event)
         document.getElementById("titleDiv").style.display="block";
         document.getElementById("taglineDiv").style.display="block";
         document.getElementById("fsbutton").style.display="block";
+        document.getElementById("vdpMode").style.display="block";
         document.getElementById("smsdisplay").style.position="relative";
         document.getElementById("smsdisplay").style.width="768px";
         document.getElementById("smsdisplay").style.height="720px";
