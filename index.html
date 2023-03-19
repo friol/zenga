@@ -23,12 +23,16 @@
     </head>
 
     <body>
-        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.9a - <span id="fpsSpan"></span></div>
+        <div id="titleDiv"><img src="img/zenga.png" /> <b>Zenga</b> emulator v0.9a - <span id="fpsSpan"></span>
+            <a class="tooltip" href=""><img src="img/camera.png" /><span><img src="" id="savestateImg" /></span></a>
+        </div>
         <canvas width=800 height=400 id="debugCanvas" style="display: none;"></canvas>
         <!--<canvas width=256 height=192 id="smsdisplay"></canvas>-->
         <canvas width=256 height=240 id="smsdisplay"></canvas>
 
-        <br/>
+        <button id="fsbutton" onclick="fullscreen();" style="display: none;">Go fullscreen!</button>
+        
+        <!-- rom selector -->
         <div id="fileselector">
         <button style="cursor:pointer" id="romLoaderBtn">Load rom</button>
         <input type="file" id="cartridgeSelector" style="display:none" onchange="handleCartridgeUpload(this.files)">(load .sms or .sg rom)<br/><br/>
@@ -62,7 +66,7 @@
 
         <!-- instructions -->
         <div id="taglineDiv" style="float:left;clear:both;margin-top:10px">z, x and arrows to play, \ to ffwd, p to pause (emulation), o to pause as on the SMS, F2 and F3 to save and load<br/>
-        <button id="fsbutton" onclick="fullscreen();" style="display: none;">Fullscreen!</button></div>
+        </div>
             
         <!-- debug zone -->        
         <div id="debugButtons" style="display: none; float:left;clear:both">

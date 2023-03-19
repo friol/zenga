@@ -67,6 +67,9 @@ class serializer
         localStorage.setItem('psginternalClock', JSON.stringify(psg.internalClock));
         localStorage.setItem('psginternalClockPos', JSON.stringify(psg.internalClockPos));
 
+        // screenshot of action
+        localStorage.setItem('savestateScreenshot', JSON.stringify(vdp.glbFrameBuffer));
+
         console.log("Saved state for "+cname);
     }
 

@@ -34,6 +34,71 @@ var glbVdpMode=0; // 0 NTSC, 1 PAL
 
 //
 
+function getDataUrlFromArr(arr, w, h) 
+{
+    if(typeof w === 'undefined' || typeof h === 'undefined') {
+        w = h = Math.sqrt(arr.length / 4);
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = w;
+    canvas.height = h;
+
+    const imgData = ctx.createImageData(w, h);
+    imgData.data.set(arr);
+    ctx.putImageData(imgData, 0, 0);
+
+    return canvas.toDataURL();
+}
+  
+function getImgFromDataUrl(data) 
+{
+    const img = document.createElement('img');
+    img.src = data;
+    return img;
+}
+  
+function getImgFromArr(arr, w, h) 
+{
+    return getImgFromDataUrl(getDataUrlFromArr(arr, w, h));
+}
+
+function loadSavestateImage()
+{
+    var uintarr=new Uint8ClampedArray(256*240*4);
+    var imgAsArray=JSON.parse(localStorage.getItem('savestateScreenshot'));
+
+    const canvas2 = document.createElement('canvas');
+    canvas2.width=256;
+    canvas2.height=240;
+    const ctx2 = canvas2.getContext('2d');
+
+    var pos=0;
+    for (var y=0;y<240;y++)
+    {
+        for (var x=0;x<256;x++)
+        {
+            uintarr[pos]=imgAsArray[pos]; 
+            pos++;
+            uintarr[pos]=imgAsArray[pos]; 
+            pos++;
+            uintarr[pos]=imgAsArray[pos]; 
+            pos++;
+            uintarr[pos]=imgAsArray[pos]; 
+            pos++;
+        }
+    }    
+
+    var imgdata = new ImageData(uintarr,256,240);
+    ctx2.putImageData(imgdata,0,0,0,0,256,240); 
+    
+    document.getElementById("savestateImg").src=canvas2.toDataURL();
+}
+
+//
+
 function drawDebugPanel(instructions)
 {
     var ycoord=16;
@@ -182,7 +247,48 @@ function drawStatus(s)
 
 function emulate()
 {
-    const smsFps=59.922743;
+    var smsFps=59.922743;
+    if (glbVdpMode==1)
+    {
+        // PAL
+        smsFps=49.701459;
+    }
+
+    // calc fps
+    const filterStrength = 20;
+    var thisFrameTime = (thisLoop=new Date) - lastLoop;
+    frameTime+= (thisFrameTime - frameTime) / filterStrength;
+    lastLoop = thisLoop;
+
+    var fpsOut = document.getElementById('fpsSpan');
+    var fpeez=(1000/frameTime).toFixed(1);
+    fpsOut.innerHTML = "going at " + fpeez + " fps";
+    glbFrames++;
+
+    if ((!glbMaxSpeed)&&(glbFrames>60))
+    {
+        if (fpeez<smsFps)
+        {
+            // accelerate!
+            if (glbScheduleInterval>1) glbScheduleInterval--;
+        }
+        else if (fpeez>smsFps)
+        {
+            // brake!!!
+            glbScheduleInterval++;
+        }
+    }
+
+    if (!glbMaxSpeed)
+    {
+        setTimeout(emulate,glbScheduleInterval);
+    }
+    else
+    {
+        setTimeout(emulate,0);
+    }
+
+    //
 
     if (glbEmulatorStatus==1)
     {
@@ -231,39 +337,6 @@ function emulate()
         drawStatus("State saved");
     }
 
-    // calc fps
-    const filterStrength = 20;
-    var thisFrameTime = (thisLoop=new Date) - lastLoop;
-    frameTime+= (thisFrameTime - frameTime) / filterStrength;
-    lastLoop = thisLoop;
-
-    var fpsOut = document.getElementById('fpsSpan');
-    var fpeez=(1000/frameTime).toFixed(1);
-    fpsOut.innerHTML = "going at " + fpeez + " fps";
-    glbFrames++;
-
-    if ((!glbMaxSpeed)&&(glbFrames>60))
-    {
-        if (fpeez<smsFps)
-        {
-            // accelerate!
-            if (glbScheduleInterval>1) glbScheduleInterval--;
-        }
-        else if (fpeez>smsFps)
-        {
-            // brake!!!
-            glbScheduleInterval++;
-        }
-    }
-
-    if (!glbMaxSpeed)
-    {
-        setTimeout(emulate,glbScheduleInterval);
-    }
-    else
-    {
-        setTimeout(emulate,0);
-    }
 }
 
 function drawScreen()
@@ -485,6 +558,7 @@ function hideDebugStuff()
     document.getElementById("cartridgeSelector").style.display="none";
     document.getElementById("softLoader").style.display="none";
     document.getElementById("fileselector").style.display="none";
+    document.getElementById("vdpMode").style.display="none";
     document.getElementById("fsbutton").style.display="block";
 }
 
@@ -505,6 +579,8 @@ window.onload = (event) =>
     {
         document.getElementById("debugButtons").style.display="block";
     }
+
+    loadSavestateImage();
 
     document.onkeydown = function(e)
 	{
@@ -555,13 +631,17 @@ window.onload = (event) =>
         {
             glbSerializer.serialize(glbCartridge.cartName,glbCPU,glbVDP,glbMMU,glbSoundchip);
             glbSerCounterS=60;
+            loadSavestateImage();
             e.preventDefault();
         }
         else if (e.key=="F3")
         {
-            if (glbSerializer.deserialize(glbCartridge.cartName,glbCPU,glbVDP,glbMMU,glbSoundchip)==0)
+            if (glbEmulatorStatus==1)
             {
-                glbSerCounterL=60;
+                if (glbSerializer.deserialize(glbCartridge.cartName,glbCPU,glbVDP,glbMMU,glbSoundchip)==0)
+                {
+                    glbSerCounterL=60;
+                }
             }
             e.preventDefault();
         }

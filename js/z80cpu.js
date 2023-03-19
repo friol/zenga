@@ -3455,7 +3455,24 @@ class z80cpu
 
             self.incPc(1);
         }, "XCHG DE,HL", 4, 0, false];
-    
+
+        this.unprefixedOpcodes[0xec]=[function()
+        {
+            var m1=self.theMMU.readAddr(self.registers.pc+1);
+            var m2=self.theMMU.readAddr(self.registers.pc+2);
+            var newaddr=m1|(m2<<8);
+            if (self.registers.f&z80flags.FLAG_PV)
+            {
+                self.pushWord(self.registers.pc+3);
+                self.registers.pc=newaddr;
+                self.additionalCycles=7;
+            }
+            else
+            {
+                self.incPc(3);
+            }
+        }, "CALL PE,%d", 10, 2, false];
+            
         this.unprefixedOpcodes[0xee]=[function()
         {
             var m1=self.theMMU.readAddr(self.registers.pc+1);
@@ -4102,6 +4119,12 @@ class z80cpu
             self.registers.h=self.rrc_8bit(self.registers.h);
             self.incPc(2); 
         }, "RRC H", 8, 0, false];
+
+        this.prefixcbOpcodes[0x0d]=[function()
+        { 
+            self.registers.l=self.rrc_8bit(self.registers.l);
+            self.incPc(2); 
+        }, "RRC L", 8, 0, false];
             
         this.prefixcbOpcodes[0x0e]=[function()
         { 

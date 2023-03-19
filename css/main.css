@@ -26,3 +26,41 @@ canvas
     /*src: url('../fonts/VT323-Regular.ttf');*/
     src: url('../fonts/TerminusTTF-4.49.2.ttf');
 }
+
+/* tooltip image */
+
+.tooltip {
+    text-decoration:none;
+    position:relative;
+  }
+   
+  .tooltip span {
+    display:none;
+    -moz-border-radius:6px;
+    -webkit-border-radius:6px;
+    border-radius:6px;
+    color:black;
+    background:white; 
+  }
+   
+  .tooltip span img {
+    float:left;
+    margin:0px 4px 4px 0;
+  }
+   
+  .tooltip:hover span {
+    display:block;
+    position:absolute;
+    top:0;
+    left:0;
+    z-index:1000;
+    width:auto;
+    max-width:280px;
+    min-height:240px;
+    border:1px solid black;
+    margin-top:12px;
+    margin-left:32px;
+    overflow:hidden;
+    padding:8px;
+  }
+  

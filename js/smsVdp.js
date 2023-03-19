@@ -377,9 +377,10 @@ class smsVDP
 
                 var cramIdx=byte0|(byte1<<1)|(byte2<<2)|(byte3<<3);
                 var curbyte=this.colorRam[cramIdx+(pal*16)];
-                var red=(curbyte&0x03)*64;
-                var green=((curbyte>>2)&0x03)*64;
-                var blue=((curbyte>>4)&0x03)*64;
+
+                let red = (curbyte & 0x03) * 85;
+                let green = ((curbyte & 0x0c) >> 2) * 85;
+                let blue = ((curbyte & 0x30) >> 4) * 85;
 
                 ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
                 ctx.fillRect(x+xt,y+yt,1,1);
@@ -529,9 +530,9 @@ class smsVDP
         for (var color=0;color<0x20;color++)
         {
             var curbyte=this.colorRam[color];
-            var red=(curbyte&0x03)*64;
-            var green=((curbyte>>2)&0x03)*64;
-            var blue=((curbyte>>4)&0x03)*64;
+            let red = (curbyte & 0x03) * 85;
+			let green = ((curbyte & 0x0c) >> 2) * 85;
+			let blue = ((curbyte & 0x30) >> 4) * 85;
 
             const quadSize=10;
             ctx.fillStyle = "rgba("+red+","+green+","+blue+",1)"; 
@@ -642,7 +643,7 @@ class smsVDP
             }
 
             // linecounter
-            if (this.currentScanlineIndex <= 192) 
+            if (this.currentScanlineIndex <= this.yScreenLines) 
             {
                 if (this.lineCounter == 0x0) 
                 {
@@ -874,12 +875,12 @@ class smsVDP
                 nameTableBaseAddressOffset=0x700;
             }
             
-            var nameTableBaseAddress=((this.nameTableBaseAddress&nameTableBaseAddressMask)<<10)+nameTableBaseAddressOffset;
+            var nameTableBaseAddress=((this.nameTableBaseAddress&nameTableBaseAddressMask)<<10)|nameTableBaseAddressOffset;
 
             // find the tile we have to draw and find the y row in this tile 
             // things get complicated with the finescroll y value, but we'll do it
 
-            var initialTile=32-((this.register08)>>3);
+            var initialTile=32-(((this.register08)>>3)&0x1f);
             var finescrollx=this.register08&0x7;
             var initialRow=Math.floor((this.register09)/8);
             var finescrolly=(this.register09%8);
@@ -986,14 +987,28 @@ class smsVDP
                 stopDrawingSpritesWhenLine208IsFound=false;
             }
 
-            var numSpritesDrawn=0;
+            var maxSprite=64;
             for (var s = 0; s < 64; s++) 
             {
                 var spriteY=this.vRam[sat+s];
                 if ((spriteY == 0xd0)&&stopDrawingSpritesWhenLine208IsFound)
                 {
+                    maxSprite=s;
                     break;
                 }
+            }
+
+            if (maxSprite>0) maxSprite-=1;
+
+            var numSpritesDrawn=0;
+            for (var s=maxSprite;s>=0;s--) 
+            //for (var s = 0; s < 64; s++) 
+            {
+                var spriteY=this.vRam[sat+s];
+                /*if ((spriteY == 0xd0)&&stopDrawingSpritesWhenLine208IsFound)
+                {
+                    break;
+                }*/
                 spriteY++;
 
                 if ((spriteY>0xd0)&&stopDrawingSpritesWhenLine208IsFound)
@@ -1034,6 +1049,12 @@ class smsVDP
                         this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
                         numSpritesDrawn++;
                     }
+                }
+
+                if (numSpritesDrawn>8)
+                {
+                    // TODO check
+                    break;
                 }
             }
 
