@@ -1510,36 +1510,35 @@ class z80cpu
         //this.registers.r&=0x7f;
 
 		let hl = this.registers.l|(this.registers.h<<8);
-		let byte = this.theMMU.readAddr(hl);
-        this.theMMU.writePort(this.registers.c,byte);
+		let valwritten = this.theMMU.readAddr(hl);
+		this.theMMU.writePort(this.registers.c,valwritten);
 
 		this.registers.b = this.dec_8bit(this.registers.b);
 
-        hl+=1; hl&=0xffff;
-        this.registers.l=hl&0xff;
-        this.registers.h=(hl>>8)&0xff;
+        hl=hl+1; hl&=0xffff;
+        this.registers.l=hl&0xff; this.registers.h=hl>>8;
 
-        if ((byte & 0x80) != 0)
+        if ((valwritten & 0x80) != 0)
         {
-            this.registers.f|=z80flags.FLAG_N;
+            this.registers.f |= z80flags.FLAG_N;
         }
         else
         {
-            this.registers.f&=~z80flags.FLAG_N;
+            this.registers.f &= ~z80flags.FLAG_N;
         }
 
-        if ((this.registers.l + byte) > 0xFF)
+        if ((this.registers.l + valwritten) > 0xFF)
         {
-            this.registers.f|=z80flags.FLAG_C;
-            this.registers.f|=z80flags.FLAG_H;
+            this.registers.f |= z80flags.FLAG_C;
+            this.registers.f |= z80flags.FLAG_H;
         }
         else
         {
-            this.registers.f&=~z80flags.FLAG_C;
-            this.registers.f&=~z80flags.FLAG_H;
+            this.registers.f &= ~z80flags.FLAG_C;
+            this.registers.f &= ~z80flags.FLAG_H;
         }
 
-        if ((((this.registers.l + byte) & 0x07) ^ this.registers.b)!=0)
+        if (this.parityLookUp[((((this.registers.l + valwritten) & 0x07) ^ this.registers.b))])
         {
             this.registers.f|=z80flags.FLAG_PV;
         }
@@ -1571,12 +1570,42 @@ class z80cpu
 
 		this.registers.b = this.dec_8bit(this.registers.b);
 
+        if ((byte & 0x80) != 0)
+        {
+            this.registers.f|=z80flags.FLAG_N;
+        }
+        else
+        {
+            this.registers.f&=~z80flags.FLAG_N;
+        }
+
+        if ((this.registers.l + byte) > 0xFF)
+        {
+            this.registers.f|=z80flags.FLAG_C;
+            this.registers.f|=z80flags.FLAG_H;
+        }
+        else
+        {
+            this.registers.f&=~z80flags.FLAG_C;
+            this.registers.f&=~z80flags.FLAG_H;
+        }
+
+        if (this.parityLookUp[((((this.registers.l + byte) & 0x07) ^ this.registers.b))])
+        {
+            this.registers.f|=z80flags.FLAG_PV;
+        }
+        else
+        {
+            this.registers.f&=~z80flags.FLAG_PV;
+        }
+
         this.incPc(2);
 	}
 
     executeOutd()
     {
 		let hl = this.registers.l|(this.registers.h<<8);
+
 		let byte = this.theMMU.readAddr(hl);
 		this.theMMU.writePort(this.registers.c,byte);
 
@@ -1606,7 +1635,7 @@ class z80cpu
             this.registers.f&=~z80flags.FLAG_H;
         }
 
-        if (((this.registers.l + byte) & 0x07) ^ this.registers.b)
+        if (this.parityLookUp[((((this.registers.l + byte) & 0x07) ^ this.registers.b))])
         {
             this.registers.f|=z80flags.FLAG_PV;
         }
@@ -1799,7 +1828,7 @@ class z80cpu
             this.registers.f&=~z80flags.FLAG_H;
         }
 
-        if ((((byte + ((this.registers.c + 1) & 0xFF)) & 0x07) ^ this.registers.b)!=0)
+        if (this.parityLookUp[((((byte + ((this.registers.c + 1) & 0xFF)) & 0x07) ^ this.registers.b))])
         {
             this.registers.f|=z80flags.FLAG_PV;
         }
@@ -1903,7 +1932,7 @@ class z80cpu
             this.registers.f &= ~z80flags.FLAG_H;
         }
 
-        if ((((this.registers.l + byte) & 0x07) ^ this.registers.b)!=0)
+        if (this.parityLookUp[((((this.registers.l + byte) & 0x07) ^ this.registers.b))])
         {
             this.registers.f |= z80flags.FLAG_PV;
         }
@@ -3681,13 +3710,19 @@ class z80cpu
 
         this.prefixedOpcodes[0x48]=[function()
         {
-            // TODO: understand flags
             self.registers.c=self.theMMU.readPort(self.registers.c);
 
             if (!(self.registers.f&z80flags.FLAG_C))
             {
                 self.registers.f=0x00;
             }
+            else
+            {
+                self.registers.f|=z80flags.FLAG_C;
+            }
+
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
 
             if ((self.registers.c & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;
@@ -3737,13 +3772,19 @@ class z80cpu
     
         this.prefixedOpcodes[0x50]=[function()
         {
-            // TODO: understand flags
             self.registers.d=self.theMMU.readPort(self.registers.c);
 
             if (!(self.registers.f&z80flags.FLAG_C))
             {
                 self.registers.f=0x00;
             }
+            else
+            {
+                self.registers.f|=z80flags.FLAG_C;
+            }
+
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
 
             if ((self.registers.d & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;
@@ -3807,13 +3848,19 @@ class z80cpu
 
         this.prefixedOpcodes[0x58]=[function()
         {
-            // TODO: understand flags
             self.registers.e=self.theMMU.readPort(self.registers.c);
 
             if (!(self.registers.f&z80flags.FLAG_C))
             {
                 self.registers.f=0x00;
             }
+            else
+            {
+                self.registers.f|=z80flags.FLAG_C;
+            }
+
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
 
             if ((self.registers.e & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;
@@ -3983,7 +4030,6 @@ class z80cpu
     
         this.prefixedOpcodes[0x78]=[function() 
         {
-            // TODO: understand flags
             self.registers.a=self.theMMU.readPort(self.registers.c);
 
             //IsSetFlag(FLAG_CARRY) ? SetFlag(FLAG_CARRY) : ClearAllFlags();
@@ -3992,6 +4038,13 @@ class z80cpu
             {
                 self.registers.f=0x00;
             }
+            else
+            {
+                self.registers.f|=z80flags.FLAG_C;
+            }
+
+            self.registers.f&=~z80flags.FLAG_N;
+            self.registers.f&=~z80flags.FLAG_H;
 
             if ((self.registers.a & 0x80) != 0) self.registers.f|=z80flags.FLAG_S;
             else self.registers.f&=~z80flags.FLAG_S;

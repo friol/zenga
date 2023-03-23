@@ -26,6 +26,13 @@ class smsMmu
             this.ram8k[i]=0;
         }
 
+        // hack to make Altered Beast work
+        if (this.theCartridge.romChecksum==0x38f22e98)
+        {
+            theCart.cartridgeRom[0x31b]=0x00;
+            theCart.cartridgeRom[0x31c]=0x00;
+        }
+
         // Codemasters mapper
 
         let checksum1 = (theCart.cartridgeRom[0x7fe7] << 8) | theCart.cartridgeRom[0x7fe6];

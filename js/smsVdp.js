@@ -1051,14 +1051,14 @@ class smsVDP
                     }
                 }
 
-                if (numSpritesDrawn>8)
+                if (numSpritesDrawn==8)
                 {
                     // TODO check
                     break;
                 }
             }
 
-            if (numSpritesDrawn>8)
+            if (numSpritesDrawn>=8)
             {
                 this.statusFlags|=0x40;
             }
