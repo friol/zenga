@@ -422,7 +422,7 @@ function runCPUTests(t)
     else if (t==0xed)
     {
         for (var o=0;o<refCPU.prefixedOpcodes.length;o++)
-        //var o=0xa3;
+        //var o=0xa9;
         {
             if (refCPU.prefixedOpcodes[o]!=undefined)
             {

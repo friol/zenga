@@ -1433,6 +1433,28 @@ class z80cpu
 		}
 	}
 
+    executeInir() 
+    {
+		let hl = this.registers.l|(this.registers.h<<8);
+
+		let byte = this.theMMU.readPort(this.registers.c);
+        this.theMMU.writeAddr(hl,byte);
+
+        hl=hl+1; hl&=0xffff;
+        this.registers.l=hl&0xff; this.registers.h=hl>>8;
+
+		this.registers.b = this.dec_8bit(this.registers.b);
+
+		if (this.registers.b>0) 
+        {
+            this.additionalCycles=5;
+		} 
+        else 
+        {
+            this.incPc(2);
+		}
+	}    
+
     // gosh
     executeCpdr()
     {
@@ -1500,6 +1522,67 @@ class z80cpu
         {
             this.incPc(2);
 		}
+    }
+
+    executeCpd()
+    {
+		let hl = this.registers.l|(this.registers.h<<8);
+		let bc = this.registers.c|(this.registers.b<<8);
+
+		let byte = this.theMMU.readAddr(hl);
+
+        hl=hl-1; hl&=0xffff;
+        bc=bc-1; bc&=0xffff;
+
+        this.registers.l=hl&0xff; this.registers.h=hl>>8;
+        this.registers.c=bc&0xff; this.registers.b=bc>>8;
+
+		let v1 = this.registers.a;
+		let v2 = byte;
+		let rawNewValue = v1 - v2;
+		let newValue = rawNewValue & 0xff;
+
+		// Reset the flags.
+		this.registers.f &= 0x01;
+
+		// H: Set if the first 4 bits of the subtraction resulted in a borrow.
+		if ((v1 & 0x0f) - (v2 & 0x0f) < 0) {
+			this.registers.f |= z80flags.FLAG_H;
+		}
+
+		let testByte = (this.registers.a - byte - ((this.registers.f & z80flags.FLAG_H) ? 1 : 0)) & 0xff;
+
+		// C: Preserved.
+
+		// N: Set.
+		this.registers.f |= z80flags.FLAG_N;
+
+		// P/V: Set if BC is not 0.
+		if (bc != 0) {
+			this.registers.f |= z80flags.FLAG_PV;
+		}
+
+		// F3: Set if bit 3 of (A - (HL) - H) is set.
+		if (testByte & 0x08) {
+			this.registers.f |= z80flags.FLAG_F3;
+		}
+
+		// F5: Set if bit 1 of (A - (HL) - H) is set.
+		if (testByte & 0x02) {
+			this.registers.f |= z80flags.FLAG_F5;
+		}
+
+		// Z: Set if the value is zero.
+		if (newValue == 0) {
+			this.registers.f |= z80flags.FLAG_Z;
+		}
+
+		// S: If the twos-compliment value is negative, set the negative flag.
+		if (newValue & 0x80) {
+			this.registers.f |= z80flags.FLAG_S;
+		}
+
+        this.incPc(2);
     }
 
 	executeOutIncrementRepeat() 
@@ -4079,10 +4162,12 @@ class z80cpu
         this.prefixedOpcodes[0xa2]=[function() { self.executeIni(); }, "INI", 16, 0, false];
         this.prefixedOpcodes[0xa3]=[function() { self.executeOuti(); }, "OUTI", 16, 0, false];
         this.prefixedOpcodes[0xa8]=[function() { self.executeLoadDecrement(); }, "LDD", 16, 0, false];
+        this.prefixedOpcodes[0xa9]=[function() { self.executeCpd(); }, "CPD", 16, 0, false];
         this.prefixedOpcodes[0xab]=[function() { self.executeOutDecrement(); }, "OUTD", 16, 0, false];
         
         this.prefixedOpcodes[0xb0]=[function() { self.executeLoadIncrementRepeat(); }, "LDIR", 16, 0, false];
         this.prefixedOpcodes[0xb1]=[function() { self.executeCpir(); }, "CPIR", 16, 0, false];
+        this.prefixedOpcodes[0xb2]=[function() { self.executeInir(); }, "INIR", 16, 0, false];
         this.prefixedOpcodes[0xb3]=[function() { self.executeOutIncrementRepeat(); }, "OTIR", 16, 0, false];
         this.prefixedOpcodes[0xb8]=[function() { self.executeLoadDecrementRepeat(); }, "LDDR", 16, 0, false];
         this.prefixedOpcodes[0xb9]=[function() { self.executeCpdr(); }, "CPDR", 16, 0, false];

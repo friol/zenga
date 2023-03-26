@@ -1000,7 +1000,7 @@ class smsVDP
 
             if (maxSprite>0) maxSprite-=1;
 
-            var numSpritesDrawn=0;
+            var numSpritesDrawnOnThisScanline=0;
             for (var s=maxSprite;s>=0;s--) 
             //for (var s = 0; s < 64; s++) 
             {
@@ -1035,7 +1035,7 @@ class smsVDP
                 if ((scanlineNum>=spriteY)&&(scanlineNum<(spriteY+8)))
                 {
                     this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY);
-                    numSpritesDrawn++;
+                    numSpritesDrawnOnThisScanline++;
                 }
 
                 // check for 8x16 sprites
@@ -1047,18 +1047,18 @@ class smsVDP
                     if ((scanlineNum>=(spriteY+8))&&(scanlineNum<(spriteY+16)))
                     {
                         this.drawSpriteSlice(spriteIdx*32,spriteX,scanlineNum,scanlineNum-spriteY-8);
-                        numSpritesDrawn++;
+                        //numSpritesDrawnOnThisScanline++;
                     }
                 }
 
-                if (numSpritesDrawn==8)
+                /*if (numSpritesDrawnOnThisScanline==8)
                 {
                     // TODO check
                     break;
-                }
+                }*/
             }
 
-            if (numSpritesDrawn>=8)
+            if (numSpritesDrawnOnThisScanline>=8)
             {
                 this.statusFlags|=0x40;
             }
